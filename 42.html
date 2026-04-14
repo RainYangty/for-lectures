@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>四面体体积唯一性 3D 演示</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #f3f4f6; }
+        #canvas-container { width: 100%; height: 100%; }
+        canvas { display: block; }
+        .panel { box-shadow: -2px 0 10px rgba(0,0,0,0.1); }
+        .snap-toast { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(59, 130, 246, 0.9); color: white; padding: 4px 12px; rounded-full: 9999px; font-size: 12px; pointer-events: none; opacity: 0; transition: opacity 0.3s; }
+    </style>
+</head>
+<body class="flex h-screen text-gray-800">
+
+    <!-- 左侧 3D 视图 -->
+    <div class="relative w-2/3 h-full bg-black">
+        <div id="canvas-container"></div>
+        <div class="absolute top-4 left-4 text-white text-sm bg-black bg-opacity-50 p-3 rounded border border-white/20">
+            <p class="font-bold text-yellow-400">操作提示：</p>
+            <p>1. 红色环：题目已知 $D$ 轨迹 (∠COD)</p>
+            <p class="text-cyan-400">2. 蓝色环：选项约束，严格贴合球面的截圆</p>
+            <p class="mt-2 text-gray-300 italic">拖动滑块靠近红蓝两圆的交点时，点 D 会自动吸附</p>
+        </div>
+        <div id="snap-indicator" class="snap-toast">已吸附至轨迹交点</div>
+    </div>
+
+    <!-- 右侧控制面板 -->
+    <div class="w-1/3 h-full bg-white flex flex-col panel z-10">
+        <div class="p-6 border-b">
+            <h1 class="text-xl font-bold mb-2">四面体 ABCD 体积决定因素</h1>
+            <p class="text-sm text-gray-600 mb-4">
+                控制滑块改变点 D 在其轨迹（红圈）上的位置。蓝色圆周显示了所选选项锁定的几何轨迹。
+            </p>
+            
+            <label class="block text-sm font-bold text-gray-700 mb-1">移动点 D 的位置 (参数 t)</label>
+            <input type="range" id="t-slider" min="0" max="360" value="120" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                <span>0°</span><span>180°</span><span>360°</span>
+            </div>
+        </div>
+
+        <div class="p-4 border-b bg-blue-50">
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div class="bg-white p-2 rounded border shadow-sm">
+                    <div class="text-gray-500 text-[10px] uppercase">体积 (V)</div>
+                    <div id="val-vol" class="font-mono font-bold text-blue-600 text-lg">0.00</div>
+                </div>
+                <div class="bg-white p-2 rounded border shadow-sm">
+                    <div class="text-gray-500 text-[10px] uppercase">D点高度 (h)</div>
+                    <div id="val-h" class="font-mono font-bold text-yellow-600 text-lg">0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 flex-1 flex flex-col overflow-y-auto">
+            <h2 class="text-md font-bold mb-3 italic text-blue-700">条件验证：</h2>
+            <div class="space-y-2 mb-4">
+                <label class="flex items-center p-2 border rounded cursor-pointer hover:bg-gray-50 transition border-blue-100">
+                    <input type="radio" name="condition" value="A" checked class="mr-3">
+                    <span class="flex-1 text-sm">A. AD 的长 <span id="val-A" class="float-right font-mono text-gray-400">0.00</span></span>
+                </label>
+                <label class="flex items-center p-2 border rounded cursor-pointer hover:bg-gray-50 transition border-blue-100">
+                    <input type="radio" name="condition" value="B" class="mr-3">
+                    <span class="flex-1 text-sm">B. ∠BCD 的大小 <span id="val-B" class="float-right font-mono text-gray-400">0.00°</span></span>
+                </label>
+                <label class="flex items-center p-2 border rounded cursor-pointer hover:bg-gray-50 transition border-blue-100">
+                    <input type="radio" name="condition" value="C" class="mr-3">
+                    <span class="flex-1 text-sm">C. CD 与平面ABC成角 <span id="val-C" class="float-right font-mono text-gray-400">0.00°</span></span>
+                </label>
+                <label class="flex items-center p-2 border rounded cursor-pointer hover:bg-gray-50 transition border-red-100">
+                    <input type="radio" name="condition" value="D" class="mr-3">
+                    <span class="flex-1 text-sm text-red-600 font-bold">D. 二面角 C-AB-D <span id="val-D" class="float-right font-mono text-gray-400">0.00°</span></span>
+                </label>
+            </div>
+
+            <div class="flex-1 border rounded-lg bg-gray-50 p-4 flex flex-col relative min-h-[180px]">
+                <h3 class="text-[11px] font-bold text-center mb-1 text-gray-500">函数图象：体积 vs 选中条件</h3>
+                <canvas id="graphCanvas" class="w-full flex-1 bg-white border border-gray-200 rounded"></canvas>
+                <p id="graph-conclusion" class="text-[10px] text-center mt-2 font-medium"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.onload = function() {
+            // --- 核心数学模型参数 ---
+            const R = 10;
+            const A = new THREE.Vector3(R, 0, 0);
+            const B = new THREE.Vector3(-R, 0, 0);
+            const O = new THREE.Vector3(0, 0, 0);
+            const angleAOC = Math.PI / 3;
+            const C = new THREE.Vector3(R * Math.cos(angleAOC), R * Math.sin(angleAOC), 0);
+            const S_ABC = 0.5 * (2*R) * (R * Math.sin(angleAOC));
+            const angleCOD = Math.PI / 4;
+            
+            const u = C.clone().normalize();
+            const v = new THREE.Vector3(0, 0, 1);
+            const w = new THREE.Vector3().crossVectors(u, v).normalize();
+
+            function getDPosition(t_deg) {
+                const t = t_deg * Math.PI / 180;
+                const projOC = R * Math.cos(angleCOD);
+                const radiusD = R * Math.sin(angleCOD);
+                const pos = new THREE.Vector3();
+                pos.addScaledVector(u, projOC);
+                pos.addScaledVector(v, radiusD * Math.cos(t));
+                pos.addScaledVector(w, radiusD * Math.sin(t));
+                return pos;
+            }
+
+            function calculateFeatures(t_deg) {
+                const posD = getDPosition(t_deg);
+                const height = Math.abs(posD.z);
+                const volume = (1/3) * S_ABC * height;
+                const valA = posD.distanceTo(A);
+                const cb = new THREE.Vector3().subVectors(B, C).normalize();
+                const cd = new THREE.Vector3().subVectors(posD, C).normalize();
+                const valB = Math.acos(Math.max(-1, Math.min(1, cb.dot(cd)))) * 180 / Math.PI;
+                const cdLength = posD.distanceTo(C);
+                const valC = Math.asin(Math.max(-1, Math.min(1, height / cdLength))) * 180 / Math.PI;
+                const ab = new THREE.Vector3().subVectors(B, A).normalize();
+                const ac = new THREE.Vector3().subVectors(C, A).normalize();
+                const ad = new THREE.Vector3().subVectors(posD, A).normalize();
+                const nABC = new THREE.Vector3(0, 0, 1); // 默认 xy 平面法向量
+                const nABD = new THREE.Vector3().crossVectors(ab, ad).normalize();
+                const valD = Math.acos(Math.max(-1, Math.min(1, nABC.dot(nABD)))) * 180 / Math.PI;
+                return { posD, height, volume, valA, valB, valC, valD };
+            }
+
+            // 精确生成圆周坐标点的函数
+            function createCirclePoints(center, axis, radius) {
+                const pts = [];
+                const vec = new THREE.Vector3(0, 1, 0);
+                if (Math.abs(axis.dot(vec)) > 0.9) vec.set(1, 0, 0);
+                const t1 = new THREE.Vector3().crossVectors(axis, vec).normalize();
+                const t2 = new THREE.Vector3().crossVectors(axis, t1).normalize();
+                for (let i = 0; i <= 128; i++) {
+                    const ang = (i / 128) * Math.PI * 2;
+                    pts.push(new THREE.Vector3().copy(center).addScaledVector(t1, radius * Math.cos(ang)).addScaledVector(t2, radius * Math.sin(ang)));
+                }
+                return pts;
+            }
+
+            // 通过空间三点计算截面圆 (保证完美贴合球面)
+            function getSphereIntersectionCircle(p1, p2, p3) {
+                const v1 = new THREE.Vector3().subVectors(p2, p1);
+                const v2 = new THREE.Vector3().subVectors(p3, p1);
+                const normal = new THREE.Vector3().crossVectors(v1, v2).normalize();
+                
+                // 原点到平面的距离
+                const dist = p1.clone().dot(normal);
+                const center = normal.clone().multiplyScalar(dist);
+                
+                // 半径 = sqrt(R^2 - d^2)
+                const radius = Math.sqrt(Math.max(0, R * R - dist * dist));
+                return createCirclePoints(center, normal, radius);
+            }
+
+            // --- Three.js 初始化 ---
+            const container = document.getElementById('canvas-container');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(22, 18, 22);
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            // 材质与几何体 (点缩小到 0.2)
+            const dotGeom = new THREE.SphereGeometry(0.2, 16, 16);
+            const matPoint = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const matPointD = new THREE.MeshBasicMaterial({ color: 0xff4444 });
+
+            // 球体
+            scene.add(new THREE.Mesh(new THREE.SphereGeometry(R, 48, 48), new THREE.MeshBasicMaterial({ color: 0x4488ff, wireframe: true, transparent: true, opacity: 0.1 })));
+
+            // 绘制 A, B, C, O, D
+            const nodes = { A, B, C, O };
+            Object.entries(nodes).forEach(([name, pos]) => {
+                const m = new THREE.Mesh(dotGeom, matPoint);
+                m.position.copy(pos);
+                scene.add(m);
+            });
+            const dMesh = new THREE.Mesh(dotGeom, matPointD);
+            scene.add(dMesh);
+
+            // 底面 ABC
+            const shapeABC = new THREE.Shape();
+            shapeABC.moveTo(A.x, A.y); shapeABC.lineTo(B.x, B.y); shapeABC.lineTo(C.x, C.y); shapeABC.lineTo(A.x, A.y);
+            scene.add(new THREE.Mesh(new THREE.ShapeGeometry(shapeABC), new THREE.MeshBasicMaterial({ color: 0x22cc22, transparent: true, opacity: 0.15, side: THREE.DoubleSide })));
+            scene.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints([A, B, C]), new THREE.LineBasicMaterial({ color: 0x22cc22, opacity: 0.5, transparent: true })));
+
+            // 已知轨迹圆 (红线)
+            const redPts = Array.from({length: 361}, (_, i) => getDPosition(i));
+            scene.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(redPts), new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 2 })));
+
+            // 选项轨迹线 (蓝线)
+            const blueLocusGeom = new THREE.BufferGeometry();
+            const blueLocusLine = new THREE.LineLoop(blueLocusGeom, new THREE.LineBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.8, linewidth: 2 }));
+            scene.add(blueLocusLine);
+
+            // 高度线
+            const heightGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(0,0,1)]);
+            const heightLine = new THREE.Line(heightGeom, new THREE.LineDashedMaterial({ color: 0xffff00, dashSize: 0.5, gapSize: 0.5 }));
+            scene.add(heightLine);
+
+            const dynamicEdgesGeom = new THREE.BufferGeometry();
+            scene.add(new THREE.LineSegments(dynamicEdgesGeom, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 })));
+
+            // --- 选项轨迹计算 (重构：完全基于球面截面) ---
+            function updateOptionLocus(option) {
+                let circlePts = [];
+                // 靶点：以120度时的位置为解，生成约束面
+                const targetD = getDPosition(120); 
+
+                if (option === 'A') {
+                    // AD 长度固定：平面垂直于 OA 且过 targetD
+                    const normal = A.clone().normalize();
+                    const dist = targetD.dot(normal);
+                    const center = normal.clone().multiplyScalar(dist);
+                    const r = Math.sqrt(Math.max(0, R*R - dist*dist));
+                    circlePts = createCirclePoints(center, normal, r);
+                } else if (option === 'B') {
+                    // ∠BCD 固定：用过 B, C, targetD 的平面截圆 (最符合“相交”直觉)
+                    circlePts = getSphereIntersectionCircle(B, C, targetD);
+                } else if (option === 'C') {
+                    // CD 与面角固定 -> 高度固定：水平圆过 targetD
+                    const normal = new THREE.Vector3(0, 0, 1);
+                    const dist = targetD.z;
+                    const center = new THREE.Vector3(0, 0, dist);
+                    const r = Math.sqrt(Math.max(0, R*R - dist*dist));
+                    circlePts = createCirclePoints(center, normal, r);
+                } else if (option === 'D') {
+                    // 二面角固定：平面过 A, B, targetD
+                    circlePts = getSphereIntersectionCircle(A, B, targetD);
+                }
+                blueLocusGeom.setFromPoints(circlePts);
+            }
+
+            // --- 2D 图象逻辑 ---
+            const canvas2d = document.getElementById('graphCanvas');
+            const ctx = canvas2d.getContext('2d');
+            let currentOption = 'A';
+
+            function drawGraph(t_current) {
+                canvas2d.width = canvas2d.clientWidth * 2;
+                canvas2d.height = canvas2d.clientHeight * 2;
+                const w = canvas2d.width, h = canvas2d.height, pad = 40;
+                ctx.clearRect(0, 0, w, h);
+                
+                const propMap = { 'A': 'valA', 'B': 'valB', 'C': 'valC', 'D': 'valD' };
+                const prop = propMap[currentOption];
+                
+                const allData = Array.from({length: 361}, (_, i) => calculateFeatures(i));
+                let minX = Math.min(...allData.map(d => d[prop])), maxX = Math.max(...allData.map(d => d[prop]));
+                let maxY = Math.max(...allData.map(d => d.volume)) * 1.1;
+                
+                const getX = v => pad + ((v - minX) / (maxX - minX || 1)) * (w - 2 * pad);
+                const getY = v => h - pad - (v / maxY) * (h - 2 * pad);
+
+                ctx.beginPath();
+                ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 4;
+                allData.forEach((d, i) => {
+                    if(i === 0) ctx.moveTo(getX(d[prop]), getY(d.volume));
+                    else ctx.lineTo(getX(d[prop]), getY(d.volume));
+                });
+                ctx.stroke();
+
+                const cur = calculateFeatures(t_current);
+                ctx.beginPath(); ctx.fillStyle = '#ef4444';
+                ctx.arc(getX(cur[prop]), getY(cur.volume), 8, 0, Math.PI*2); ctx.fill();
+
+                const conclusion = document.getElementById('graph-conclusion');
+                if (currentOption === 'D') {
+                    conclusion.innerText = "❌ 二面角对应两个体积解"; conclusion.className = "text-[10px] text-center mt-2 font-bold text-red-600";
+                } else {
+                    conclusion.innerText = "✅ 单值映射，体积唯一"; conclusion.className = "text-[10px] text-center mt-2 font-bold text-green-600";
+                }
+            }
+
+            // --- 交互同步 ---
+            const slider = document.getElementById('t-slider');
+            
+            function update() {
+                const t_val = parseFloat(slider.value);
+                
+                // 绘制限制圆轨迹 (蓝圆)
+                updateOptionLocus(currentOption);
+
+                // 寻找交点吸附
+                const baseFeat = calculateFeatures(120);
+                const targets = { 'A': baseFeat.valA, 'B': baseFeat.valB, 'C': baseFeat.valC, 'D': baseFeat.valD };
+                const target = targets[currentOption];
+                
+                let bestT = t_val;
+                let minSnapDist = 15;
+                const propMap = { 'A': 'valA', 'B': 'valB', 'C': 'valC', 'D': 'valD' };
+                const prop = propMap[currentOption];
+                
+                // 遍历寻找交点 (零点穿越法)
+                for (let i = 0; i < 360; i += 0.5) {
+                    const f1 = calculateFeatures(i);
+                    const f2 = calculateFeatures(i + 0.5);
+                    if ((f1[prop] - target) * (f2[prop] - target) <= 0) {
+                        const dist = Math.abs(i - t_val);
+                        if (dist < minSnapDist) {
+                            bestT = i;
+                            minSnapDist = dist;
+                        }
+                    }
+                }
+                document.getElementById('snap-indicator').style.opacity = (minSnapDist < 10) ? 1 : 0;
+
+                const data = calculateFeatures(bestT);
+                dMesh.position.copy(data.posD);
+                heightGeom.setFromPoints([data.posD, new THREE.Vector3(data.posD.x, data.posD.y, 0)]);
+                heightLine.computeLineDistances();
+                dynamicEdgesGeom.setFromPoints([A, data.posD, B, data.posD, C, data.posD]);
+
+                document.getElementById('val-vol').innerText = data.volume.toFixed(2);
+                document.getElementById('val-h').innerText = data.height.toFixed(2);
+                document.getElementById('val-A').innerText = data.valA.toFixed(2);
+                document.getElementById('val-B').innerText = data.valB.toFixed(2) + '°';
+                document.getElementById('val-C').innerText = data.valC.toFixed(2) + '°';
+                document.getElementById('val-D').innerText = data.valD.toFixed(2) + '°';
+
+                drawGraph(bestT);
+            }
+
+            slider.addEventListener('input', update);
+            document.querySelectorAll('input[name="condition"]').forEach(r => {
+                r.addEventListener('change', e => { currentOption = e.target.value; update(); });
+            });
+
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }
+
+            window.addEventListener('resize', () => {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+                update();
+            });
+
+            update();
+            animate();
+        };
+    </script>
+</body>
+</html>

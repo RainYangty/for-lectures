@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数学建模模型拟合与预测系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjs@11.9.0/lib/browser/math.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a192f 0%, #112240 50%, #0a192f 100%);
+            color: #e6f1ff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* 动态背景 */
+        #dynamicBackground {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+        }
+
+        /* 科技感背景 */
+        .tech-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(32, 129, 226, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(32, 129, 226, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(32, 129, 226, 0.03) 0%, transparent 50%);
+        }
+
+        .grid-lines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-image: 
+                linear-gradient(rgba(32, 129, 226, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(32, 129, 226, 0.1) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 10px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .step-container {
+            background: rgba(10, 25, 47, 0.9);
+            border-radius: 15px;
+            box-shadow: 
+                0 8px 25px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(32, 129, 226, 0.3),
+                inset 0 0 25px rgba(32, 129, 226, 0.1);
+            padding: 15px;
+            margin-bottom: 10px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(32, 129, 226, 0.4);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(32, 129, 226, 0.3);
+            position: relative;
+            height: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .header h1 {
+            color: #64ffda;
+            font-size: 1.8rem;
+            text-shadow: 0 0 15px rgba(100, 255, 218, 0.3);
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        /* 步骤指示器 */
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+            position: relative;
+            padding: 0 5px;
+            gap: 60px;
+        }
+
+        .step-indicator:before {
+            content: '';
+            position: absolute;
+            top: 18px;
+            left: 30%;
+            right: 30%;
+            height: 3px;
+            background: linear-gradient(90deg, 
+                rgba(32, 129, 226, 0.4) 0%, 
+                rgba(32, 129, 226, 0.7) 50%, 
+                rgba(32, 129, 226, 0.4) 100%);
+            z-index: 1;
+            border-radius: 1.5px;
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .step:hover .step-circle {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(100, 255, 218, 0.3);
+        }
+
+        .step-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(32, 129, 226, 0.2);
+            color: #8892b0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 5px;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(32, 129, 226, 0.5);
+            font-size: 0.85rem;
+        }
+
+        .step.active .step-circle {
+            background: rgba(32, 129, 226, 0.9);
+            color: white;
+            transform: scale(1.1);
+            box-shadow: 
+                0 0 0 2px rgba(32, 129, 226, 0.3),
+                0 0 15px rgba(32, 129, 226, 0.5);
+            border-color: #64ffda;
+        }
+
+        .step-label {
+            font-size: 0.85rem;
+            color: #8892b0;
+            text-align: center;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .step.active .step-label {
+            color: #64ffda;
+            font-weight: 600;
+        }
+
+        .step-content {
+            flex: 1;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            overflow: hidden;
+        }
+
+        .step-content.active {
+            display: flex;
+            flex-direction: column;
+            opacity: 1;
+        }
+
+        .step-title {
+            color: #64ffda;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(32, 129, 226, 0.3);
+            display: flex;
+            align-items: center;
+        }
+
+        .step-title i {
+            margin-right: 10px;
+            font-size: 1.1rem;
+            color: #64ffda;
+        }
+
+        /* 环节一：模型拟合展示样式 */
+        .step1-container {
+            display: flex;
+            flex-direction: column;
+            height: calc(100% - 50px);
+            overflow: hidden;
+        }
+
+        .charts-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            gap: 15px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .charts-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .charts-container::-webkit-scrollbar-track {
+            background: rgba(10, 25, 47, 0.5);
+            border-radius: 3px;
+        }
+
+        .charts-container::-webkit-scrollbar-thumb {
+            background: rgba(32, 129, 226, 0.5);
+            border-radius: 3px;
+        }
+
+        .r-squared-display {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 15px;
+            padding: 12px;
+            background: rgba(17, 34, 64, 0.8);
+            border-radius: 10px;
+            border: 1px solid rgba(32, 129, 226, 0.4);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+
+        .r-squared-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px 20px;
+            border-radius: 8px;
+            min-width: 180px;
+            background: rgba(10, 25, 47, 0.6);
+        }
+
+        .r-squared-model {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .model-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .r-squared-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #64ffda;
+        }
+
+        .chart-box {
+            flex: 1;
+            background: rgba(17, 34, 64, 0.8);
+            border-radius: 12px;
+            padding: 10px;
+            border: 1px solid rgba(32, 129, 226, 0.4);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .chart-box canvas {
+            flex: 1;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* 环节二：模型预测计算样式 */
+        .step2-container {
+            display: flex;
+            flex-direction: column;
+            height: calc(100% - 50px);
+            overflow: hidden;
+        }
+
+        .calculator-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        @media (max-width: 1200px) {
+            .calculator-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .model-info-panel, .calculator-panel {
+            background: rgba(17, 34, 64, 0.8);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 
+                0 4px 12px rgba(0, 0, 0, 0.25),
+                inset 0 0 0 1px rgba(32, 129, 226, 0.25);
+            border: 1px solid rgba(32, 129, 226, 0.4);
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow-y: auto;
+        }
+
+        .panel-title {
+            color: #64ffda;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(32, 129, 226, 0.3);
+            display: flex;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        .panel-title i {
+            margin-right: 8px;
+            color: #64ffda;
+            font-size: 1.1rem;
+        }
+
+        .model-equation {
+            background: rgba(10, 25, 47, 0.6);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(32, 129, 226, 0.25);
+            text-align: center;
+        }
+
+        .equation-text {
+            font-family: 'Cambria Math', 'Times New Roman', serif;
+            font-size: 1.3rem;
+            color: #64ffda;
+            font-weight: bold;
+        }
+
+        .params-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .param-item {
+            background: rgba(10, 25, 47, 0.6);
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(32, 129, 226, 0.3);
+        }
+
+        .param-label {
+            font-size: 0.8rem;
+            color: #a8b2d1;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .param-value {
+            background: rgba(32, 129, 226, 0.12);
+            border: 1px solid rgba(32, 129, 226, 0.3);
+            border-radius: 5px;
+            padding: 8px;
+            font-size: 0.95rem;
+            color: #64ffda;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .input-label {
+            font-weight: 600;
+            color: #a8b2d1;
+            min-width: 100px;
+            font-size: 0.9rem;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 9px 12px;
+            border: 1px solid rgba(32, 129, 226, 0.6);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            background: rgba(10, 25, 47, 0.9);
+            color: #e6f1ff;
+            font-family: 'Courier New', monospace;
+        }
+
+        .input-field:focus {
+            border-color: #64ffda;
+            box-shadow: 0 0 0 2px rgba(100, 255, 218, 0.2);
+            outline: none;
+        }
+
+        .calc-btn {
+            padding: 10px;
+            background: linear-gradient(135deg, #2081e2 0%, #1a6bc4 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 3px 10px rgba(32, 129, 226, 0.4);
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .calc-btn:hover {
+            background: linear-gradient(135deg, #1a6bc4 0%, #155a9c 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(32, 129, 226, 0.5);
+        }
+
+        .result-section {
+            background: rgba(17, 34, 64, 0.8);
+            border-radius: 10px;
+            padding: 18px;
+            margin-top: 15px;
+            border: 2px dashed rgba(32, 129, 226, 0.4);
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+
+        .result-section.active {
+            border: 2px solid #64ffda;
+            box-shadow: 0 0 15px rgba(100, 255, 218, 0.3);
+        }
+
+        .result-value {
+            font-size: 2rem;
+            color: #64ffda;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(10, 25, 47, 0.5);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(32, 129, 226, 0.5);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 255, 218, 0.5);
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 8px;
+            }
+            
+            .step-container {
+                padding: 12px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .step-indicator {
+                gap: 30px;
+            }
+            
+            .step-circle {
+                width: 28px;
+                height: 28px;
+            }
+            
+            .step-label {
+                font-size: 0.7rem;
+            }
+            
+            .r-squared-display {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .r-squared-item {
+                min-width: auto;
+                width: 100%;
+            }
+            
+            .calculator-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- 动态背景 -->
+    <canvas id="dynamicBackground"></canvas>
+    
+    <!-- 科技背景 -->
+    <div class="tech-bg"></div>
+    <div class="grid-lines"></div>
+
+    <div class="container">
+        <div class="step-container">
+            <div class="header">
+                <h1><i class="fas fa-project-diagram"></i> 数学建模模型拟合与预测系统</h1>
+            </div>
+
+            <!-- 步骤指示器 -->
+            <div class="step-indicator">
+                <div class="step active" data-step="1">
+                    <div class="step-circle">1</div>
+                    <div class="step-label">模型拟合展示</div>
+                </div>
+                <div class="step" data-step="2">
+                    <div class="step-circle">2</div>
+                    <div class="step-label">模型预测计算</div>
+                </div>
+            </div>
+
+            <!-- 环节一：模型拟合展示 -->
+            <div class="step-content active" id="step1">
+                <h2 class="step-title"><i class="fas fa-chart-line"></i> 模型拟合展示</h2>
+                <div class="step1-container">
+                    <div class="charts-container">
+                        <!-- R²显示区域 -->
+                        <div class="r-squared-display">
+                            <div class="r-squared-item">
+                                <div class="r-squared-model">
+                                    <span class="model-indicator" style="background-color: #2081e2;"></span>
+                                    指数模型 R²
+                                </div>
+                                <div class="r-squared-value" id="r2Exp">0.0000</div>
+                            </div>
+                            <div class="r-squared-item">
+                                <div class="r-squared-model">
+                                    <span class="model-indicator" style="background-color: #64ffda;"></span>
+                                    反比例模型 R²
+                                </div>
+                                <div class="r-squared-value" id="r2Inv">0.0000</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 组合模型图 -->
+                        <div class="chart-box">
+                            <canvas id="combinedChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 环节二：模型预测计算 -->
+            <div class="step-content" id="step2">
+                <h2 class="step-title"><i class="fas fa-calculator"></i> 模型预测计算</h2>
+                <div class="step2-container">
+                    <div class="calculator-layout">
+                        <!-- 左侧：模型信息 -->
+                        <div class="model-info-panel">
+                            <div class="panel-title">
+                                <i class="fas fa-cube"></i> 计算模型
+                            </div>
+                            <div class="model-equation">
+                                <div class="equation-text" id="modelEquation">
+                                    <!-- 模型方程将通过JavaScript动态生成 -->
+                                </div>
+                            </div>
+                            <div class="params-grid" id="paramsGrid">
+                                <!-- 参数将通过JavaScript动态生成 -->
+                            </div>
+                            <div style="margin-top: auto;">
+                                <div class="panel-title">
+                                    <i class="fas fa-info-circle"></i> 模型信息
+                                </div>
+                                <div id="modelInfo" style="color: #a8b2d1; font-size: 0.85rem;">
+                                    <!-- 模型信息将通过JavaScript动态生成 -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 右侧：计算器 -->
+                        <div class="calculator-panel">
+                            <!-- 已知X求Y -->
+                            <div class="input-group">
+                                <span class="input-label">输入<span id="xNameLabel">时间</span>值</span>
+                                <input type="number" class="input-field" id="inputX" placeholder="例如: 15" step="any">
+                                <span style="color: #64ffda; font-weight: 600; min-width: 40px;" id="xUnitCalc">分钟</span>
+                            </div>
+                            <button class="calc-btn" id="calcXtoY">
+                                <i class="fas fa-calculator"></i> 计算<span id="yNameCalcBtn">温度</span>值
+                            </button>
+
+                            <!-- 已知Y求X -->
+                            <div class="input-group" style="margin-top: 15px;">
+                                <span class="input-label">输入<span id="yNameLabel">温度</span>值</span>
+                                <input type="number" class="input-field" id="inputY" placeholder="例如: 60" step="any">
+                                <span style="color: #64ffda; font-weight: 600; min-width: 40px;" id="yUnitCalc">°C</span>
+                            </div>
+                            <button class="calc-btn" id="calcYtoX">
+                                <i class="fas fa-calculator"></i> 计算<span id="xNameCalcBtn">时间</span>值
+                            </button>
+
+                            <!-- 结果区域 -->
+                            <div class="result-section" id="resultSection">
+                                <div class="result-placeholder" id="resultPlaceholder">
+                                    <i class="fas fa-calculator" style="font-size: 2rem; color: #8892b0; margin-bottom: 12px;"></i>
+                                    <p style="color: #a8b2d1; font-size: 1rem;">请输入数值进行计算</p>
+                                </div>
+                                <div class="result-content hidden" id="resultContent">
+                                    <!-- 结果将通过JavaScript动态生成 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 动态背景粒子系统
+        class DynamicBackground {
+            constructor() {
+                this.canvas = document.getElementById('dynamicBackground');
+                this.ctx = this.canvas.getContext('2d');
+                this.particles = [];
+                this.particleCount = 60;
+                this.colors = ['#2081e2', '#64ffda', '#9333ea', '#f59e0b'];
+                
+                this.init();
+                this.animate();
+                window.addEventListener('resize', () => this.resize());
+            }
+            
+            init() {
+                this.resize();
+                this.createParticles();
+            }
+            
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            }
+            
+            createParticles() {
+                this.particles = [];
+                for (let i = 0; i < this.particleCount; i++) {
+                    this.particles.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        size: Math.random() * 3 + 1,
+                        speedX: (Math.random() - 0.5) * 0.5,
+                        speedY: (Math.random() - 0.5) * 0.5,
+                        color: this.colors[Math.floor(Math.random() * this.colors.length)],
+                        opacity: Math.random() * 0.5 + 0.1
+                    });
+                }
+            }
+            
+            animate() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // 绘制连接线
+                for (let i = 0; i < this.particles.length; i++) {
+                    for (let j = i + 1; j < this.particles.length; j++) {
+                        const dx = this.particles[i].x - this.particles[j].x;
+                        const dy = this.particles[i].y - this.particles[j].y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance < 100) {
+                            this.ctx.beginPath();
+                            this.ctx.strokeStyle = `rgba(32, 129, 226, ${0.1 * (1 - distance/100)})`;
+                            this.ctx.lineWidth = 0.5;
+                            this.ctx.moveTo(this.particles[i].x, this.particles[i].y);
+                            this.ctx.lineTo(this.particles[j].x, this.particles[j].y);
+                            this.ctx.stroke();
+                        }
+                    }
+                }
+                
+                // 更新和绘制粒子
+                this.particles.forEach(particle => {
+                    particle.x += particle.speedX;
+                    particle.y += particle.speedY;
+                    
+                    // 边界检查
+                    if (particle.x < 0 || particle.x > this.canvas.width) particle.speedX *= -1;
+                    if (particle.y < 0 || particle.y > this.canvas.height) particle.speedY *= -1;
+                    
+                    // 绘制粒子
+                    this.ctx.beginPath();
+                    this.ctx.fillStyle = particle.color;
+                    this.ctx.globalAlpha = particle.opacity;
+                    this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                });
+                
+                this.ctx.globalAlpha = 1;
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        // 全局变量
+        let dataPoints = [];
+        let combinedChart;
+        let expModel, invModel, selectedModel;
+        let currentStep = 1;
+        let dynamicBackground;
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化动态背景
+            dynamicBackground = new DynamicBackground();
+            
+            setupEventListeners();
+            loadDefaultData();
+            initializeModels();
+            updateAllCharts();
+        });
+
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 步骤切换事件
+            document.querySelectorAll('.step').forEach(step => {
+                step.addEventListener('click', function() {
+                    const stepNumber = parseInt(this.dataset.step);
+                    if (stepNumber !== currentStep) {
+                        goToStep(stepNumber);
+                    }
+                });
+            });
+
+            // 计算器事件
+            document.getElementById('calcXtoY').addEventListener('click', calculateXtoY);
+            document.getElementById('calcYtoX').addEventListener('click', calculateYtoX);
+            document.getElementById('inputX').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') calculateXtoY();
+            });
+            document.getElementById('inputY').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') calculateYtoX();
+            });
+        }
+
+        // 加载默认数据
+        function loadDefaultData() {
+            dataPoints = [];
+            const defaultData = "0,85.0; 1,80.9; 2,76.7; 3,72.2; 4,69.3; 5,66.5; 6,63.2; 7,60.7; 8,56.4; 9,55.9; 10,52.9; 11,50.6; 12,50.5; 13,47.6; 14,46.7; 15,45.1; 16,43.4; 17,40.7; 18,38.4; 19,38.2";
+            
+            const pointStrings = defaultData.split(';').map(s => s.trim()).filter(s => s);
+            pointStrings.forEach(pointStr => {
+                const parts = pointStr.split(',').map(s => s.trim()).filter(s => s);
+                if (parts.length >= 2) {
+                    const x = parseFloat(parts[0]);
+                    const y = parseFloat(parts[1]);
+                    if (!isNaN(x) && !isNaN(y)) {
+                        dataPoints.push({ x, y });
+                    }
+                }
+            });
+            
+            dataPoints.sort((a, b) => a.x - b.x);
+        }
+
+        // 初始化模型
+        function initializeModels() {
+            // 指数模型: y = 25 + 60 * exp(-0.0780 * x)
+            expModel = {
+                name: "指数模型",
+                formula: "25 + 60 * exp(-0.0780 * x)",
+                displayFormula: "y = 25 + 60·e^(-0.0780·x)",
+                params: { a: 25, b: 60, c: -0.0780 },
+                color: '#2081e2',
+                evaluator: createFunctionEvaluator("25 + 60 * exp(-0.0780 * x)")
+            };
+            
+            // 反比例模型: y = 25 + 522 / (x + 8.7)
+            invModel = {
+                name: "反比例模型",
+                formula: "25 + 522 / (x + 8.7)",
+                displayFormula: "y = 25 + 522/(x + 8.7)",
+                params: { a: 522, b: 8.7, c: 25 },
+                color: '#64ffda',
+                evaluator: createFunctionEvaluator("25 + 522 / (x + 8.7)")
+            };
+            
+            // 默认选择R²较高的模型
+            selectBestModel();
+        }
+
+        // 创建函数评估器
+        function createFunctionEvaluator(formula) {
+            return function(x, params) {
+                try {
+                    const scope = { x, ...params, ...math };
+                    const compiled = math.compile(formula);
+                    const result = compiled.evaluate(scope);
+                    return result;
+                } catch (e) {
+                    console.error('函数评估错误:', e);
+                    return NaN;
+                }
+            };
+        }
+
+        // 选择最佳模型（基于R²）
+        function selectBestModel() {
+            const expR2 = calculateRSquared(expModel.evaluator, expModel.params);
+            const invR2 = calculateRSquared(invModel.evaluator, invModel.params);
+            
+            expModel.rSquared = expR2;
+            invModel.rSquared = invR2;
+            
+            // 选择R²较高的模型
+            selectedModel = expR2 >= invR2 ? expModel : invModel;
+            
+            // 更新R²显示
+            document.getElementById('r2Exp').textContent = expR2.toFixed(4);
+            document.getElementById('r2Inv').textContent = invR2.toFixed(4);
+            
+            return selectedModel;
+        }
+
+        // 计算R²
+        function calculateRSquared(evaluator, params) {
+            const yValues = dataPoints.map(p => p.y);
+            const yMean = yValues.reduce((sum, y) => sum + y, 0) / yValues.length;
+            
+            let ssTotal = 0;
+            let ssResidual = 0;
+            
+            for (let point of dataPoints) {
+                try {
+                    const yPred = evaluator(point.x, params);
+                    ssTotal += Math.pow(point.y - yMean, 2);
+                    ssResidual += Math.pow(point.y - yPred, 2);
+                } catch (e) {
+                    console.error('R²计算错误:', e);
+                    return 0;
+                }
+            }
+            
+            if (ssTotal === 0) return 1;
+            return Math.max(0, 1 - (ssResidual / ssTotal));
+        }
+
+        // 更新所有图表
+        function updateAllCharts() {
+            if (dataPoints.length === 0) return;
+            
+            // 更新模型选择
+            selectBestModel();
+            
+            // 初始化或更新图表
+            if (!combinedChart) initializeCombinedChart();
+            else updateCombinedChart();
+        }
+
+        // 初始化组合图表
+        function initializeCombinedChart() {
+            const ctx = document.getElementById('combinedChart').getContext('2d');
+            
+            // 获取数据范围
+            const xValues = dataPoints.map(p => p.x);
+            const yValues = dataPoints.map(p => p.y);
+            const xMin = Math.min(...xValues);
+            const xMax = Math.max(...xValues);
+            
+            // 生成模型曲线数据
+            const expData = generateModelData(expModel, xMin, xMax);
+            const invData = generateModelData(invModel, xMin, xMax);
+            
+            combinedChart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        {
+                            label: '数据点',
+                            data: xValues.map((x, i) => ({x: x, y: yValues[i]})),
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            borderColor: 'rgba(255, 255, 255, 1)',
+                            borderWidth: 1.5,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBorderColor: '#0a192f',
+                            pointBorderWidth: 1.5,
+                            showLine: false
+                        },
+                        {
+                            label: '指数模型',
+                            data: expData,
+                            backgroundColor: 'rgba(32, 129, 226, 0.2)',
+                            borderColor: 'rgba(32, 129, 226, 1)',
+                            borderWidth: 2.5,
+                            pointRadius: 0,
+                            fill: false,
+                            showLine: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: '反比例模型',
+                            data: invData,
+                            backgroundColor: 'rgba(100, 255, 218, 0.2)',
+                            borderColor: 'rgba(100, 255, 218, 1)',
+                            borderWidth: 2.5,
+                            pointRadius: 0,
+                            fill: false,
+                            showLine: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: getChartOptions('模型综合对比')
+            });
+        }
+
+        // 更新组合图表
+        function updateCombinedChart() {
+            if (!combinedChart) return;
+            
+            const xValues = dataPoints.map(p => p.x);
+            const yValues = dataPoints.map(p => p.y);
+            const xMin = Math.min(...xValues);
+            const xMax = Math.max(...xValues);
+            
+            // 更新数据点
+            combinedChart.data.datasets[0].data = xValues.map((x, i) => ({x: x, y: yValues[i]}));
+            
+            // 更新模型曲线
+            combinedChart.data.datasets[1].data = generateModelData(expModel, xMin, xMax);
+            combinedChart.data.datasets[2].data = generateModelData(invModel, xMin, xMax);
+            
+            combinedChart.update();
+        }
+
+        // 生成模型数据
+        function generateModelData(model, xMin, xMax) {
+            const data = [];
+            const step = (xMax - xMin) / 100;
+            
+            for (let x = xMin; x <= xMax; x += step) {
+                try {
+                    const y = model.evaluator(x, model.params);
+                    if (isFinite(y)) {
+                        data.push({x: x, y: y});
+                    }
+                } catch (e) {
+                    // 忽略计算错误
+                }
+            }
+            
+            return data;
+        }
+
+        // 获取图表配置选项
+        function getChartOptions(title) {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: '时间 (分钟)',
+                            font: { size: 12, weight: 'bold' },
+                            color: '#64ffda'
+                        },
+                        grid: {
+                            color: 'rgba(32, 129, 226, 0.2)',
+                            drawBorder: true
+                        },
+                        ticks: {
+                            font: { size: 10 },
+                            color: '#a8b2d1'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: '温度 (°C)',
+                            font: { size: 12, weight: 'bold' },
+                            color: '#64ffda'
+                        },
+                        grid: {
+                            color: 'rgba(32, 129, 226, 0.2)',
+                            drawBorder: true
+                        },
+                        ticks: {
+                            font: { size: 10 },
+                            color: '#a8b2d1'
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        backgroundColor: 'rgba(10, 25, 47, 0.9)',
+                        titleFont: { size: 10 },
+                        bodyFont: { size: 9 },
+                        padding: 6,
+                        cornerRadius: 5,
+                        callbacks: {
+                            label: function(context) {
+                                return `时间: ${context.parsed.x.toFixed(2)}分钟, 温度: ${context.parsed.y.toFixed(2)}°C`;
+                            }
+                        }
+                    },
+                    legend: {
+                        labels: {
+                            font: { size: 10 },
+                            color: '#a8b2d1'
+                        }
+                    }
+                }
+            };
+        }
+
+        // 步骤导航
+        function goToStep(stepNumber) {
+            currentStep = stepNumber;
+            document.querySelectorAll('.step-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`step${stepNumber}`).classList.add('active');
+            
+            document.querySelectorAll('.step').forEach(step => {
+                step.classList.remove('active');
+                if (parseInt(step.dataset.step) === stepNumber) {
+                    step.classList.add('active');
+                }
+            });
+            
+            // 切换到步骤2时设置计算器
+            if (stepNumber === 2) {
+                setupCalculator();
+            }
+        }
+
+        // 设置计算器
+        function setupCalculator() {
+            if (!selectedModel) return;
+            
+            // 显示模型方程
+            document.getElementById('modelEquation').textContent = selectedModel.displayFormula;
+            
+            // 生成参数显示
+            const paramsGrid = document.getElementById('paramsGrid');
+            paramsGrid.innerHTML = '';
+            
+            Object.keys(selectedModel.params).forEach(paramName => {
+                const paramDiv = document.createElement('div');
+                paramDiv.className = 'param-item';
+                paramDiv.innerHTML = `
+                    <div class="param-label">${paramName}</div>
+                    <div class="param-value">${selectedModel.params[paramName].toFixed(4)}</div>
+                `;
+                paramsGrid.appendChild(paramDiv);
+            });
+            
+            // 更新模型信息
+            const modelInfo = document.getElementById('modelInfo');
+            modelInfo.innerHTML = `
+                <p><strong>模型名称:</strong> ${selectedModel.name}</p>
+                <p><strong>拟合优度 R²:</strong> ${selectedModel.rSquared.toFixed(4)}</p>
+                <p><strong>模型类型:</strong> ${selectedModel.name}</p>
+                <p style="margin-top: 10px;">${selectedModel.name === '指数模型' 
+                    ? '指数模型适用于描述指数衰减或增长的过程' 
+                    : '反比例模型适用于描述反比例关系的过程'}</p>
+            `;
+        }
+
+        // 计算X到Y
+        function calculateXtoY() {
+            if (!selectedModel) {
+                showError('模型未初始化！');
+                return;
+            }
+            
+            const inputX = document.getElementById('inputX').value.trim();
+            const xValue = parseFloat(inputX);
+            
+            if (!inputX || isNaN(xValue)) {
+                showError('请输入有效的数值！');
+                return;
+            }
+            
+            try {
+                const yValue = selectedModel.evaluator(xValue, selectedModel.params);
+                
+                if (!isFinite(yValue)) {
+                    showError('计算结果无效，请检查输入值！');
+                    return;
+                }
+                
+                showResultXtoY(xValue, yValue);
+            } catch (e) {
+                showError('计算过程中出现错误！');
+            }
+        }
+
+        // 计算Y到X
+        function calculateYtoX() {
+            if (!selectedModel) {
+                showError('模型未初始化！');
+                return;
+            }
+            
+            const inputY = document.getElementById('inputY').value.trim();
+            const targetY = parseFloat(inputY);
+            
+            if (!inputY || isNaN(targetY)) {
+                showError('请输入有效的数值！');
+                return;
+            }
+            
+            // 使用数值方法求解x值
+            try {
+                // 在合理范围内搜索
+                const xMin = 0;
+                const xMax = 50;
+                
+                let xValue = null;
+                let minDiff = Infinity;
+                
+                // 在范围内采样
+                for (let x = xMin; x <= xMax; x += (xMax - xMin) / 100) {
+                    const yPred = selectedModel.evaluator(x, selectedModel.params);
+                    const diff = Math.abs(yPred - targetY);
+                    
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        xValue = x;
+                    }
+                }
+                
+                if (xValue === null || minDiff > Math.abs(targetY) * 0.1) {
+                    showError('无法求解，请检查输入值是否在合理范围内！');
+                    return;
+                }
+                
+                showResultYtoX(targetY, xValue);
+            } catch (e) {
+                showError('求解过程中出现错误！');
+            }
+        }
+
+        // 显示X到Y的结果
+        function showResultXtoY(xValue, yValue) {
+            const resultContent = document.getElementById('resultContent');
+            const resultPlaceholder = document.getElementById('resultPlaceholder');
+            const resultSection = document.getElementById('resultSection');
+            
+            resultPlaceholder.classList.add('hidden');
+            resultContent.classList.remove('hidden');
+            resultSection.classList.add('active');
+            
+            resultContent.innerHTML = `
+                <div style="text-align: center;">
+                    <div style="color: #64ffda; font-weight: 600; font-size: 1rem; margin-bottom: 12px;">
+                        当 时间 = ${xValue.toFixed(2)}分钟 时：
+                    </div>
+                    <div class="result-value">${yValue.toFixed(2)}</div>
+                    <div style="color: #a8b2d1; font-size: 1rem; margin-top: 8px;">
+                        温度 (°C)
+                    </div>
+                    <div style="margin-top: 15px; color: #10b981; font-weight: 600; font-size: 0.85rem;">
+                        <i class="fas fa-check-circle"></i> 计算完成
+                    </div>
+                </div>
+            `;
+        }
+
+        // 显示Y到X的结果
+        function showResultYtoX(yValue, xValue) {
+            const resultContent = document.getElementById('resultContent');
+            const resultPlaceholder = document.getElementById('resultPlaceholder');
+            const resultSection = document.getElementById('resultSection');
+            
+            resultPlaceholder.classList.add('hidden');
+            resultContent.classList.remove('hidden');
+            resultSection.classList.add('active');
+            
+            resultContent.innerHTML = `
+                <div style="text-align: center;">
+                    <div style="color: #64ffda; font-weight: 600; font-size: 1rem; margin-bottom: 12px;">
+                        当 温度 = ${yValue.toFixed(2)}°C 时：
+                    </div>
+                    <div class="result-value">${xValue.toFixed(2)}</div>
+                    <div style="color: #a8b2d1; font-size: 1rem; margin-top: 8px;">
+                        时间 (分钟)
+                    </div>
+                    <div style="margin-top: 15px; color: #10b981; font-weight: 600; font-size: 0.85rem;">
+                        <i class="fas fa-check-circle"></i> 计算完成
+                    </div>
+                </div>
+            `;
+        }
+
+        // 显示错误
+        function showError(message) {
+            const resultContent = document.getElementById('resultContent');
+            const resultPlaceholder = document.getElementById('resultPlaceholder');
+            const resultSection = document.getElementById('resultSection');
+            
+            resultPlaceholder.classList.add('hidden');
+            resultContent.classList.remove('hidden');
+            resultSection.classList.add('active');
+            
+            resultContent.innerHTML = `
+                <div style="text-align: center;">
+                    <div style="color: #ef4444; font-size: 2rem; margin-bottom: 12px;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div style="color: #ef4444; font-weight: 600; font-size: 1rem;">
+                        ${message}
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数学节迷宫挑战 | π的征程</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #3c1053, #1a2a6c);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        
+        header {
+            text-align: center;
+            padding: 20px;
+            width: 100%;
+            max-width: 1000px;
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(0, 200, 255, 0.7);
+            color: #fff;
+            background: linear-gradient(to right, #ff7e5f, #feb47b, #3a7bd5, #00d2ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #64ffda;
+        }
+        
+        .math-symbols {
+            font-size: 3rem;
+            letter-spacing: 15px;
+            margin: 15px 0;
+            color: #ff7e5f;
+            text-align: center;
+        }
+        
+        .container {
+            display: flex;
+            max-width: 1000px;
+            width: 100%;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .game-container {
+            flex: 3;
+            background: rgba(10, 25, 47, 0.85);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+            border: 2px solid #64ffda;
+        }
+        
+        .info-panel {
+            flex: 1;
+            background: rgba(10, 25, 47, 0.85);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 2px solid #ff7e5f;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .panel-title {
+            font-size: 1.4rem;
+            color: #64ffda;
+            text-align: center;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #64ffda;
+            padding-bottom: 8px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .stat {
+            background: rgba(30, 61, 104, 0.6);
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ff9a8b;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #88d3ce;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .key-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 8px;
+            max-width: 150px;
+            margin: 0 auto;
+        }
+        
+        .key {
+            width: 45px;
+            height: 45px;
+            background: rgba(47, 85, 151, 0.8);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        
+        .key:hover {
+            background: rgba(64, 224, 208, 0.5);
+            transform: translateY(-3px);
+        }
+        
+        .key:active {
+            transform: translateY(1px);
+        }
+        
+        .key.up { grid-column: 2; grid-row: 1; }
+        .key.left { grid-column: 1; grid-row: 2; }
+        .key.right { grid-column: 3; grid-row: 2; }
+        .key.down { grid-column: 2; grid-row: 3; }
+        
+        #maze {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-gap: 2px;
+            margin: 20px auto;
+            width: min(80vh, 100%);
+            aspect-ratio: 1;
+            background: rgba(100, 255, 218, 0.15);
+            border: 3px solid #64ffda;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(100, 255, 218, 0.3);
+        }
+        
+        .cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            position: relative;
+        }
+        
+        .wall {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+        }
+        
+        .path {
+            background: rgba(10, 25, 47, 0.8);
+        }
+        
+        .door {
+            background: repeating-linear-gradient(
+                -45deg,
+                #ff7e5f,
+                #ff7e5f 10px,
+                #feb47b 10px,
+                #feb47b 20px
+            );
+            color: #1a2a6c;
+            font-weight: bold;
+            font-size: 1.8rem;
+        }
+        
+        .trap {
+            background: repeating-radial-gradient(
+                circle at center,
+                #ff416c,
+                #ff416c 5px,
+                #ff4b2b 5px,
+                #ff4b2b 10px
+            );
+        }
+        
+        .reward {
+            background: radial-gradient(circle, #7bed9f, #2ed573);
+            color: #1a2a6c;
+            font-size: 1.8rem;
+        }
+        
+        .start {
+            background: linear-gradient(to bottom right, #00b09b, #96c93d);
+            color: white;
+            font-size: 1.8em;
+        }
+        
+        .end {
+            background: linear-gradient(to bottom right, #f3f9a6, #cac531);
+            color: #1a2a6c;
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        
+        .player {
+            background: radial-gradient(circle, #4facfe, #00f2fe);
+            border-radius: 50%;
+            width: 80%;
+            height: 80%;
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.7);
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 8px rgba(0, 242, 254, 0.8); }
+            50% { box-shadow: 0 0 20px rgba(0, 242, 254, 1); }
+            100% { box-shadow: 0 0 8px rgba(0, 242, 254, 0.8); }
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: linear-gradient(135deg, #1a2a6c, #3c1053);
+            width: 90%;
+            max-width: 600px;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 0 40px rgba(100, 255, 218, 0.5);
+            border: 3px solid #64ffda;
+            position: relative;
+        }
+        
+        .math-question {
+            font-size: 1.4rem;
+            margin: 25px 0;
+            color: #fff;
+            line-height: 1.6;
+        }
+        
+        .formula {
+            font-family: 'Cambria Math', serif;
+            font-size: 1.6rem;
+            margin: 20px 0;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            color: #feb47b;
+        }
+        
+        .options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .option {
+            padding: 14px;
+            background: rgba(47, 85, 151, 0.8);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1.1rem;
+            border: 2px solid transparent;
+        }
+        
+        .option:hover {
+            background: rgba(100, 255, 218, 0.3);
+            border-color: #64ffda;
+            transform: translateY(-3px);
+        }
+        
+        .modal-title {
+            font-size: 2rem;
+            color: #64ffda;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            background: linear-gradient(to right, #00b09b, #96c93d);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1.1rem;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-reset {
+            background: linear-gradient(to right, #ff416c, #ff4b2b);
+        }
+        
+        .leaderboard {
+            list-style: none;
+            margin-top: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .leaderboard li {
+            padding: 10px;
+            background: rgba(30, 61, 104, 0.6);
+            margin-bottom: 8px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .top-score {
+            background: linear-gradient(to right, rgba(255,215,0,0.3), transparent) !important;
+            border: 1px solid gold;
+        }
+        
+        .player-name {
+            color: #ff7e5f;
+        }
+        
+        .player-time {
+            color: #64ffda;
+        }
+        
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            padding: 20px;
+            color: #88d3ce;
+            font-size: 0.9rem;
+            width: 100%;
+            max-width: 1000px;
+        }
+        
+        .win-animation {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .confetti {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #f00;
+            animation: fall linear forwards;
+        }
+        
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(1turn);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .math-symbols {
+                font-size: 2rem;
+                letter-spacing: 8px;
+            }
+            
+            .options {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>π的征程：数学节迷宫挑战</h1>
+        <p class="subtitle">纪念3月14日国际数学节 - 在迷宫中挑战你的数学知识</p>
+        <div class="math-symbols">π α β γ δ ε θ λ ∞ ∫ ∑ ∏ ± ≈ ≠ ∀ ∠ ∇ ≅</div>
+    </header>
+    
+    <div class="container">
+        <div class="game-container">
+            <div id="maze"></div>
+        </div>
+        
+        <div class="info-panel">
+            <h2 class="panel-title">游戏信息</h2>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value" id="timer">00:00</div>
+                    <div class="stat-label">用时</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="questions">0/8</div>
+                    <div class="stat-label">解题数</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="rewards">0</div>
+                    <div class="stat-label">奖励数</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="lives">3</div>
+                    <div class="stat-label">剩余生命</div>
+                </div>
+            </div>
+            
+            <h2 class="panel-title">操作说明</h2>
+            <p>使用键盘方向键或下方控制键移动角色</p>
+            
+            <div class="controls">
+                <div class="key-container">
+                    <div class="key up" id="upBtn">↑</div>
+                    <div class="key left" id="leftBtn">←</div>
+                    <div class="key right" id="rightBtn">→</div>
+                    <div class="key down" id="downBtn">↓</div>
+                </div>
+            </div>
+            
+            <button class="btn btn-reset" id="resetBtn">重置游戏</button>
+            
+            <h2 class="panel-title">排行榜</h2>
+            <ul class="leaderboard" id="leaderboard">
+                <li class="top-score"><span class="player-name">数学天才</span><span class="player-time">01:24</span></li>
+                <li><span class="player-name">π的追求者</span><span class="player-time">01:58</span></li>
+                <li><span class="player-name">几何大师</span><span class="player-time">02:15</span></li>
+                <li><span class="player-name">代数之星</span><span class="player-time">02:33</span></li>
+                <li><span class="player-name">数学新人</span><span class="player-time">03:07</span></li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="modal" id="mathModal">
+        <div class="modal-content">
+            <h2 class="modal-title">数学之门</h2>
+            <div class="math-question">请回答下面的数学问题以继续前进：</div>
+            <div class="formula" id="questionText">什么是欧拉公式？</div>
+            <div class="options" id="optionsContainer">
+                <!-- 选项会由JS动态生成 -->
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>© 2023 国际数学节挑战 | 设计于π日 | 适合高中学生参与</p>
+        <p>游戏中包含代数、几何、三角函数、概率等高中数学知识</p>
+    </footer>
+    
+    <script>
+        // 地图定义：0=路径, 1=墙, 2=门, 3=陷阱, 4=奖励, 5=起点, 6=终点
+        const mazeLayout = [
+            [1, 5, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 2, 0, 0, 0, 1],
+            [1, 0, 1, 1, 0, 1, 1, 1, 0, 1],
+            [1, 0, 1, 4, 0, 0, 0, 1, 0, 1],
+            [1, 0, 1, 1, 1, 1, 0, 1, 0, 1],
+            [1, 0, 1, 0, 0, 0, 0, 1, 0, 1],
+            [1, 0, 3, 0, 1, 1, 1, 1, 0, 1],
+            [1, 0, 1, 0, 2, 4, 0, 0, 0, 1],
+            [1, 0, 0, 0, 1, 1, 1, 1, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 6, 1]
+        ];
+        
+        // 游戏状态
+        let gameState = {
+            playerPosition: { x: 1, y: 0 }, // 初始位置
+            questionsAnswered: 0,
+            rewardsCollected: 0,
+            lives: 3,
+            time: 0,
+            timerInterval: null,
+            hasKey: false
+        };
+        
+        // 数学题库
+        const mathQuestions = [
+            {
+                question: "圆的周长公式是什么？",
+                options: ["2πr", "πr²", "πd²", "2πd"],
+                answer: 0
+            },
+            {
+                question: "欧拉公式 e^{iπ} = ?",
+                options: ["i", "0", "-1", "1"],
+                answer: 2
+            },
+            {
+                question: "勾股定理适用于什么三角形？",
+                options: ["锐角三角形", "直角三角形", "钝角三角形", "所有三角形"],
+                answer: 1
+            },
+            {
+                question: "二次函数 y=x²+4x+3 的顶点坐标是？",
+                options: ["(2, -1)", "(-2, -1)", "(2, 1)", "(-2, 1)"],
+                answer: 1
+            },
+            {
+                question: "30°角的三角函数值 sin30° 等于？",
+                options: ["√3/2", "1/2", "√2/2", "1/√2"],
+                answer: 1
+            },
+            {
+                question: "掷两个骰子，和为6的概率是多少？",
+                options: ["1/9", "5/36", "1/6", "5/12"],
+                answer: 1
+            },
+            {
+                question: "向量 (3, 4) 的模长是多少？",
+                options: ["7", "5", "6", "√7"],
+                answer: 1
+            },
+            {
+                question: "若 logₐb = c，则下列表示正确的是？",
+                options: ["a^c = b", "b^c = a", "c^a = b", "a^b = c"],
+                answer: 0
+            },
+            {
+                question: "斐波那契数列的下一个数：1, 1, 2, 3, 5, ...",
+                options: ["6", "7", "8", "9"],
+                answer: 2
+            },
+            {
+                question: "复数 i 的平方等于多少？",
+                options: ["2", "1", "-1", "0"],
+                answer: 2
+            }
+        ];
+        
+        // 初始化游戏
+        function initGame() {
+            clearInterval(gameState.timerInterval);
+            gameState = {
+                playerPosition: { x: 1, y: 0 },
+                questionsAnswered: 0,
+                rewardsCollected: 0,
+                lives: 3,
+                time: 0
+            };
+            
+            updateStats();
+            buildMaze();
+            startTimer();
+        }
+        
+        // 构建迷宫
+        function buildMaze() {
+            const mazeContainer = document.getElementById('maze');
+            mazeContainer.innerHTML = '';
+            
+            for (let y = 0; y < mazeLayout.length; y++) {
+                for (let x = 0; x < mazeLayout[y].length; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+                    
+                    switch(mazeLayout[y][x]) {
+                        case 0: // 路径
+                            cell.classList.add('path');
+                            break;
+                        case 1: // 墙
+                            cell.classList.add('wall');
+                            break;
+                        case 2: // 门
+                            cell.classList.add('door');
+                            cell.innerHTML = 'D';
+                            break;
+                        case 3: // 陷阱
+                            cell.classList.add('trap');
+                            cell.innerHTML = '☠';
+                            break;
+                        case 4: // 奖励
+                            cell.classList.add('reward');
+                            cell.innerHTML = '⁂';
+                            break;
+                        case 5: // 起点
+                            cell.classList.add('start');
+                            cell.innerHTML = 'START';
+                            break;
+                        case 6: // 终点
+                            cell.classList.add('end');
+                            cell.innerHTML = 'π';
+                            break;
+                    }
+                    
+                    // 放置玩家
+                    if (x === gameState.playerPosition.x && y === gameState.playerPosition.y) {
+                        const player = document.createElement('div');
+                        player.className = 'player';
+                        cell.appendChild(player);
+                        cell.classList.add('path');
+                    }
+                    
+                    mazeContainer.appendChild(cell);
+                }
+            }
+        }
+        
+        // 开始计时器
+        function startTimer() {
+            gameState.timerInterval = setInterval(() => {
+                gameState.time++;
+                updateTimer();
+            }, 1000);
+        }
+        
+        // 更新计时器显示
+        function updateTimer() {
+            const minutes = Math.floor(gameState.time / 60).toString().padStart(2, '0');
+            const seconds = (gameState.time % 60).toString().padStart(2, '0');
+            document.getElementById('timer').textContent = `${minutes}:${seconds}`;
+        }
+        
+        // 更新游戏统计信息
+        function updateStats() {
+            document.getElementById('questions').textContent = 
+                `${gameState.questionsAnswered}/8`;
+            document.getElementById('rewards').textContent = 
+                gameState.rewardsCollected;
+            document.getElementById('lives').textContent = 
+                gameState.lives;
+        }
+        
+        // 移动玩家
+        function movePlayer(dx, dy) {
+            const newX = gameState.playerPosition.x + dx;
+            const newY = gameState.playerPosition.y + dy;
+            
+            // 检查边界
+            if (newX < 0 || newY < 0 || 
+                newY >= mazeLayout.length || 
+                newX >= mazeLayout[0].length) {
+                return;
+            }
+            
+            const newCellType = mazeLayout[newY][newX];
+            
+            // 墙 - 无法通过
+            if (newCellType === 1) {
+                return;
+            }
+            
+            // 门 - 需要回答问题
+            if (newCellType === 2) {
+                showMathQuestion(newX, newY);
+                return;
+            }
+            
+            // 终点 - 游戏胜利
+            if (newCellType === 6) {
+                endGame(true);
+                return;
+            }
+            
+            // 陷阱 - 失去一条命
+            if (newCellType === 3) {
+                gameState.lives--;
+                updateStats();
+                
+                if (gameState.lives <= 0) {
+                    endGame(false);
+                } else {
+                    gameState.playerPosition = { x: newX, y: newY };
+                    buildMaze();
+                    showModal("你掉进了陷阱！失去一条生命。");
+                    setTimeout(() => {
+                        returnToStart();
+                    }, 1500);
+                }
+                return;
+            }
+            
+            // 奖励 - 获得奖励
+            if (newCellType === 4) {
+                gameState.rewardsCollected++;
+                updateStats();
+                
+                // 移除奖励
+                mazeLayout[newY][newX] = 0;
+            }
+            
+            // 更新玩家位置
+            gameState.playerPosition = { x: newX, y: newY };
+            buildMaze();
+        }
+        
+        // 返回到起点
+        function returnToStart() {
+            gameState.playerPosition = { x: 1, y: 0 };
+            buildMaze();
+        }
+        
+        // 显示数学问题
+        function showMathQuestion(targetX, targetY) {
+            const modal = document.getElementById('mathModal');
+            const questionContainer = document.getElementById('questionText');
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+            
+            const randomQuestion = mathQuestions[Math.floor(Math.random() * mathQuestions.length)];
+            
+            gameState.targetPosition = { x: targetX, y: targetY };
+            gameState.currentQuestion = randomQuestion;
+            
+            questionContainer.textContent = randomQuestion.question;
+            
+            randomQuestion.options.forEach((option, index) => {
+                const optionBtn = document.createElement('div');
+                optionBtn.className = 'option';
+                optionBtn.textContent = option;
+                optionBtn.dataset.index = index;
+                
+                optionBtn.addEventListener('click', () => {
+                    handleAnswer(index, randomQuestion.answer);
+                });
+                
+                optionsContainer.appendChild(optionBtn);
+            });
+            
+            modal.style.display = 'flex';
+        }
+        
+        // 处理答案
+        function handleAnswer(selectedIndex, correctIndex) {
+            const modal = document.getElementById('mathModal');
+            modal.style.display = 'none';
+            
+            if (selectedIndex === correctIndex) {
+                // 正确回答，开门
+                mazeLayout[gameState.targetPosition.y][gameState.targetPosition.x] = 0;
+                gameState.questionsAnswered++;
+                updateStats();
+                gameState.playerPosition = { 
+                    x: gameState.targetPosition.x, 
+                    y: gameState.targetPosition.y 
+                };
+                buildMaze();
+                showModal("正确！门已经打开。");
+            } else {
+                // 错误回答，门依然关闭
+                showModal("回答错误！请尝试移动到其他位置。");
+            }
+        }
+        
+        // 显示消息弹出框
+        function showModal(message) {
+            // 在实际实现中，这里可以显示消息模态框
+            console.log(message);
+        }
+        
+        // 结束游戏
+        function endGame(isVictory) {
+            clearInterval(gameState.timerInterval);
+            
+            if (isVictory) {
+                const timeStr = document.getElementById('timer').textContent;
+                showModal(`恭喜！你成功到达终点！用时: ${timeStr}`);
+                
+                // 添加胜利动画
+                createConfetti();
+                
+                // 添加到排行榜
+                addToLeaderboard(`玩家${Math.floor(Math.random() * 1000)}`, gameState.time);
+            } else {
+                showModal("游戏结束！你失去了所有生命。");
+            }
+        }
+        
+        // 创建五彩纸屑效果
+        function createConfetti() {
+            const container = document.querySelector('.game-container');
+            const colors = ['#ff9a8b', '#64ffda', '#4facfe', '#f3f9a6', '#ff416c'];
+            
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = `${Math.random() * 100}%`;
+                confetti.style.top = '-10px';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDuration = `${Math.random() * 3 + 2}s`;
+                
+                container.appendChild(confetti);
+                
+                // 动画结束后移除
+                setTimeout(() => {
+                    confetti.remove();
+                }, 5000);
+            }
+        }
+        
+        // 添加到排行榜
+        function addToLeaderboard(name, timeInSeconds) {
+            const leaderboard = document.getElementById('leaderboard');
+            
+            // 转换为分钟:秒格式
+            const minutes = Math.floor(timeInSeconds / 60);
+            const seconds = timeInSeconds % 60;
+            const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            // 创建新元素
+            const newEntry = document.createElement('li');
+            newEntry.innerHTML = `<span class="player-name">${name}</span><span class="player-time">${timeStr}</span>`;
+            
+            // 添加到列表并排序
+            leaderboard.appendChild(newEntry);
+            
+            // 简单的排序（实际实现可能更复杂）
+            const entries = Array.from(leaderboard.children).slice(1); // 跳过标题
+            entries.sort((a, b) => {
+                const aTime = getTimeInSeconds(a.querySelector('.player-time').textContent);
+                const bTime = getTimeInSeconds(b.querySelector('.player-time').textContent);
+                return aTime - bTime;
+            });
+            
+            // 添加回列表
+            entries.forEach(entry => leaderboard.appendChild(entry));
+        }
+        
+        // 从时间字符串转为秒数
+        function getTimeInSeconds(timeStr) {
+            const [minutes, seconds] = timeStr.split(':').map(Number);
+            return minutes * 60 + seconds;
+        }
+        
+        // 事件监听器
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case 'ArrowUp':
+                    movePlayer(0, -1);
+                    break;
+                case 'ArrowLeft':
+                    movePlayer(-1, 0);
+                    break;
+                case 'ArrowRight':
+                    movePlayer(1, 0);
+                    break;
+                case 'ArrowDown':
+                    movePlayer(0, 1);
+                    break;
+            }
+        });
+        
+        // 添加按钮事件
+        document.getElementById('upBtn').addEventListener('click', () => movePlayer(0, -1));
+        document.getElementById('downBtn').addEventListener('click', () => movePlayer(0, 1));
+        document.getElementById('leftBtn').addEventListener('click', () => movePlayer(-1, 0));
+        document.getElementById('rightBtn').addEventListener('click', () => movePlayer(1, 0));
+        
+        // 重置按钮
+        document.getElementById('resetBtn').addEventListener('click', initGame);
+        
+        // 初始化游戏
+        window.onload = initGame;
+    </script>
+</body>
+</html>

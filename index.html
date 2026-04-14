@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教育资源导航 - 纯净版</title>
+    <style>
+        :root {
+            --primary: #5856D6; /* 换了一个高级的紫色调 */
+            --bg: #F2F2F7;
+            --card: #FFFFFF;
+            --text: #1C1C1E;
+        }
+
+        body {
+            font-family: -apple-system, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container { width: 100%; max-width: 800px; }
+
+        header { margin-bottom: 40px; }
+        h1 { font-size: 28px; font-weight: 700; margin: 0; }
+        p { color: #8E8E93; margin-top: 8px; }
+
+        .list-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .nav-item {
+            background: var(--card);
+            padding: 18px 24px;
+            border-radius: 14px;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .nav-item:hover {
+            background: #E5E5EA;
+            transform: scale(1.01);
+        }
+
+        .file-code {
+            font-family: monospace;
+            background: #F2F2F7;
+            padding: 4px 8px;
+            border-radius: 6px;
+            margin-right: 15px;
+            font-size: 14px;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .file-name { flex-grow: 1; font-weight: 500; }
+
+        .arrow { color: #C7C7CC; font-weight: bold; }
+
+        .section-label {
+            margin: 20px 0 10px 5px;
+            font-size: 13px;
+            text-transform: uppercase;
+            color: #8E8E93;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Education Directory</h1>
+        <p>已适配简化后的文件名 (11.html - 51.html)</p>
+    </header>
+
+    <div class="list-group">
+        <div class="section-label">数学挑战 & 实验</div>
+        <a href="11.html" class="nav-item"><span class="file-code">11.html</span><span class="file-name">π的征程 - 数学迷宫挑战 1</span><span class="arrow">→</span></a>
+        <a href="12.html" class="nav-item"><span class="file-code">12.html</span><span class="file-name">动态迷宫版 2</span><span class="arrow">→</span></a>
+        <a href="13.html" class="nav-item"><span class="file-code">13.html</span><span class="file-name">π的征程 - 九宫格挑战</span><span class="arrow">→</span></a>
+        <a href="14.html" class="nav-item"><span class="file-code">14.html</span><span class="file-name">抛硬币概率实验</span><span class="arrow">→</span></a>
+
+        <div class="section-label">数学模型</div>
+        <a href="21.html" class="nav-item"><span class="file-code">21.html</span><span class="file-name">茶水口感数学模型 (基础版)</span><span class="arrow">→</span></a>
+        <a href="22.html" class="nav-item"><span class="file-code">22.html</span><span class="file-name">茶水冲泡温度与口感 (升级版)</span><span class="arrow">→</span></a>
+        <a href="3.html" class="nav-item"><span class="file-code">3.html</span><span class="file-name">模型检验 - 定性与定量分析</span><span class="arrow">→</span></a>
+
+        <div class="section-label">几何与可视化</div>
+        <a href="41.html" class="nav-item"><span class="file-code">41.html</span><span class="file-name">正方体截面可视化</span><span class="arrow">→</span></a>
+        <a href="42.html" class="nav-item"><span class="file-code">42.html</span><span class="file-name">球体积演示</span><span class="arrow">→</span></a>
+
+        <div class="section-label">知识分析与工具</div>
+        <a href="51.html" class="nav-item"><span class="file-code">51.html</span><span class="file-name">高中数学高考知识点分析</span><span class="arrow">→</span></a>
+        <a href="coding.html" class="nav-item"><span class="file-code">coding.html</span><span class="file-name">幸运抽奖环节</span><span class="arrow">→</span></a>
+    </div>
+</div>
+
+</body>
+</html>

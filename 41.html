@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>正方体截面可视化</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            opacity: 0.9;
+        }
+        
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .canvas-section {
+            flex: 1;
+            min-width: 600px;
+            background: rgba(0, 10, 30, 0.7);
+            border-radius: 15px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            position: relative;
+            padding: 15px;
+        }
+        
+        #canvas-container {
+            width: 100%;
+            height: 500px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: rgba(0, 0, 20, 0.8);
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 15px 0;
+        }
+        
+        .slider-container {
+            margin: 10px 0;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 10px;
+            background: linear-gradient(to right, #00c6ff, #0072ff);
+            border-radius: 5px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            background: #ff8c00;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 140, 0, 0.8);
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(to right, #00c6ff, #0072ff);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        button.active {
+            background: linear-gradient(to right, #ff8c00, #ff4500);
+            box-shadow: 0 0 15px rgba(255, 140, 0, 0.6);
+        }
+        
+        .info-section {
+            flex: 1;
+            min-width: 400px;
+            background: rgba(0, 10, 30, 0.7);
+            border-radius: 15px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            padding: 25px;
+        }
+        
+        .section-title {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #00c6ff;
+            text-align: center;
+        }
+        
+        .propositions {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .proposition {
+            background: rgba(0, 30, 60, 0.6);
+            padding: 16px;
+            border-radius: 10px;
+            border-left: 4px solid #4facfe;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .proposition:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .proposition.correct {
+            border-left: 4px solid #00ff9d;
+            background: rgba(0, 80, 40, 0.6);
+        }
+        
+        .proposition.incorrect {
+            border-left: 4px solid #ff4d4d;
+            background: rgba(80, 0, 0, 0.6);
+        }
+        
+        .proposition h3 {
+            margin-bottom: 8px;
+            font-size: 1.2rem;
+            color: #00c6ff;
+        }
+        
+        .section-info {
+            background: rgba(0, 50, 90, 0.6);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 25px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .info-item {
+            background: rgba(0, 30, 60, 0.5);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .info-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #00c6ff;
+        }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .color-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        
+        .instructions {
+            background: rgba(0, 50, 90, 0.6);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 25px;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 10px;
+            color: #00c6ff;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin: 8px 0;
+        }
+        
+        @media (max-width: 1100px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .canvas-section, .info-section {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>正方体截面可视化交互应用</h1>
+        <p class="subtitle">探索过点A、P（BC中点）和Q（CC1上的动点）的平面截正方体所得的截面变化</p>
+    </div>
+    
+    <div class="container">
+        <div class="canvas-section">
+            <h2>3D 可视化</h2>
+            <div id="canvas-container"></div>
+            
+            <div class="controls">
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>CQ 值控制 (范围: -0.5 到 1.5):</span>
+                        <span id="cq-value">0.50</span>
+                    </div>
+                    <input type="range" id="cq-slider" min="-50" max="150" value="50" step="1">
+                </div>
+                
+                <div class="buttons">
+                    <button id="auto-play">自动演示</button>
+                    <button id="reset">重置视图</button>
+                    <button id="cq-neg">CQ = -0.5</button>
+                    <button id="cq-0">CQ = 0</button>
+                    <button id="cq-0.3">CQ = 0.3</button>
+                    <button id="cq-0.5">CQ = 0.5</button>
+                    <button id="cq-0.7">CQ = 0.7</button>
+                    <button id="cq-1">CQ = 1</button>
+                    <button id="cq-1.5">CQ = 1.5</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <h2 class="section-title">命题分析</h2>
+            <div class="propositions">
+                <div class="proposition" id="prop1">
+                    <h3>命题 ①</h3>
+                    <p>当 CQ＝1 时，截面 S 的面积为 \(\frac{\sqrt{6}}{2}\)</p>
+                </div>
+                <div class="proposition" id="prop2">
+                    <h3>命题 ②</h3>
+                    <p>当 0 &lt; CQ &lt; 1 时，截面 S 为六边形</p>
+                </div>
+                <div class="proposition" id="prop3">
+                    <h3>命题 ③</h3>
+                    <p>当 CQ＝\(\frac{1}{2}\) 时，S 与 C₁D₁ 的交点 R 满足 C₁R＝\(\frac{1}{2}\)</p>
+                </div>
+                <div class="proposition" id="prop4">
+                    <h3>命题 ④</h3>
+                    <p>当 CQ＝\(\frac{1}{2}\) 时，S 为等腰梯形</p>
+                </div>
+                <div class="proposition" id="prop5">
+                    <h3>命题 ⑤</h3>
+                    <p>当 0 &lt; CQ &lt; \(\frac{1}{2}\) 时，S 为四边形</p>
+                </div>
+            </div>
+            
+            <div class="section-info">
+                <h3>当前截面信息</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div>截面形状</div>
+                        <div class="info-value" id="section-type">四边形</div>
+                    </div>
+                    <div class="info-item">
+                        <div>顶点数量</div>
+                        <div class="info-value" id="vertices-count">4</div>
+                    </div>
+                    <div class="info-item">
+                        <div>Q点位置</div>
+                        <div class="info-value" id="q-position">中点</div>
+                    </div>
+                    <div class="info-item">
+                        <div>CQ值</div>
+                        <div class="info-value" id="current-cq">0.50</div>
+                    </div>
+                </div>
+                
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="color-box" style="background-color: #00ff00;"></div>
+                        <span>点A</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box" style="background-color: #ff00ff;"></div>
+                        <span>点P (BC中点)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box" style="background-color: #ff8c00;"></div>
+                        <span>点Q (CC₁上)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box" style="background-color: #ff0000;"></div>
+                        <span>截面</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="instructions">
+                <h3>操作说明</h3>
+                <ul>
+                    <li>拖动滑块调整Q点在CC₁上的位置（范围：-0.5 到 1.5）</li>
+                    <li>点击并拖动旋转正方体查看不同角度</li>
+                    <li>使用鼠标滚轮放大/缩小视图</li>
+                    <li>点击"自动演示"观察截面变化全过程</li>
+                    <li>点击"重置视图"恢复初始视角</li>
+                    <li>点击CQ值按钮直接查看对应截面</li>
+                    <li>点击命题查看对应的CQ值截面</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化Three.js场景
+        let scene, camera, renderer, cube, sectionMesh, points = {};
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        let isDragging = false;
+        let prevMouseX = 0, prevMouseY = 0;
+        let prevRotationX = 0, prevRotationY = 0;
+        let autoPlayInterval;
+        let cqValue = 0.5;
+        let activeButton = null;
+        
+        // 正方体顶点定义
+        const vertices = [
+            new THREE.Vector3(0, 0, 0),   // D (0)
+            new THREE.Vector3(0, 1, 0),   // C (1)
+            new THREE.Vector3(1, 1, 0),   // B (2)
+            new THREE.Vector3(1, 0, 0),   // A (3)
+            new THREE.Vector3(0, 0, 1),   // D1 (4)
+            new THREE.Vector3(0, 1, 1),   // C1 (5)
+            new THREE.Vector3(1, 1, 1),   // B1 (6)
+            new THREE.Vector3(1, 0, 1)    // A1 (7)
+        ];
+        
+        // 初始化场景
+        function init() {
+            // 创建场景
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a2a);
+            scene.fog = new THREE.Fog(0x0a0a2a, 5, 15);
+            
+            // 创建相机
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(3, 2, 3);
+            
+            // 创建渲染器
+            const container = document.getElementById('canvas-container');
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+            
+            // 添加光源
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight1.position.set(2, 3, 4);
+            scene.add(directionalLight1);
+            
+            const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
+            directionalLight2.position.set(-2, -3, -4);
+            scene.add(directionalLight2);
+            
+            // 创建立方体线框
+            createCube();
+            
+            // 初始截面
+            updateSection();
+            
+            // 添加坐标轴辅助
+            const axesHelper = new THREE.AxesHelper(2);
+            scene.add(axesHelper);
+            
+            // 事件监听
+            window.addEventListener('resize', onWindowResize);
+            container.addEventListener('mousedown', onMouseDown);
+            container.addEventListener('mousemove', onMouseMove);
+            container.addEventListener('mouseup', onMouseUp);
+            container.addEventListener('wheel', onMouseWheel, { passive: false });
+            
+            // 监听滑块变化
+            const slider = document.getElementById('cq-slider');
+            slider.addEventListener('input', function() {
+                cqValue = this.value / 100;
+                document.getElementById('cq-value').textContent = cqValue.toFixed(2);
+                document.getElementById('current-cq').textContent = cqValue.toFixed(2);
+                updateSection();
+                updatePropositions();
+                resetActiveButton();
+            });
+            
+            // 自动播放按钮
+            document.getElementById('auto-play').addEventListener('click', toggleAutoPlay);
+            document.getElementById('reset').addEventListener('click', resetView);
+            
+            // CQ值按钮
+            document.getElementById('cq-neg').addEventListener('click', () => setCQValue(-0.5));
+            document.getElementById('cq-0').addEventListener('click', () => setCQValue(0));
+            document.getElementById('cq-0.3').addEventListener('click', () => setCQValue(0.3));
+            document.getElementById('cq-0.5').addEventListener('click', () => setCQValue(0.5));
+            document.getElementById('cq-0.7').addEventListener('click', () => setCQValue(0.7));
+            document.getElementById('cq-1').addEventListener('click', () => setCQValue(1));
+            document.getElementById('cq-1.5').addEventListener('click', () => setCQValue(1.5));
+            
+            // 命题点击事件
+            document.querySelectorAll('.proposition').forEach((elem, index) => {
+                elem.addEventListener('click', () => {
+                    switch(index) {
+                        case 0: setCQValue(1); break;      // 命题①
+                        case 1: setCQValue(0.7); break;    // 命题②
+                        case 2: setCQValue(0.5); break;    // 命题③
+                        case 3: setCQValue(0.5); break;    // 命题④
+                        case 4: setCQValue(0.3); break;    // 命题⑤
+                    }
+                });
+            });
+            
+            // 初始更新
+            updateSectionInfo();
+            updatePropositions();
+            
+            // 开始渲染
+            animate();
+        }
+        
+        // 设置CQ值
+        function setCQValue(value) {
+            cqValue = value;
+            document.getElementById('cq-slider').value = cqValue * 100;
+            document.getElementById('cq-value').textContent = cqValue.toFixed(2);
+            document.getElementById('current-cq').textContent = cqValue.toFixed(2);
+            updateSection();
+            updatePropositions();
+            resetActiveButton();
+            
+            // 标记活动按钮
+            const buttonIds = {
+                '-0.5': 'cq-neg',
+                '0': 'cq-0',
+                '0.3': 'cq-0.3',
+                '0.5': 'cq-0.5',
+                '0.7': 'cq-0.7',
+                '1': 'cq-1',
+                '1.5': 'cq-1.5'
+            };
+            
+            if (buttonIds[value.toString()]) {
+                activeButton = document.getElementById(buttonIds[value.toString()]);
+                activeButton.classList.add('active');
+            }
+        }
+        
+        // 重置活动按钮
+        function resetActiveButton() {
+            if (activeButton) {
+                activeButton.classList.remove('active');
+                activeButton = null;
+            }
+        }
+        
+        // 创建立方体线框
+        function createCube() {
+            // 创建立方体的棱
+            const edgesGeometry = new THREE.BufferGeometry().setFromPoints([
+                vertices[0], vertices[1], 
+                vertices[1], vertices[2],
+                vertices[2], vertices[3],
+                vertices[3], vertices[0],
+                
+                vertices[4], vertices[5],
+                vertices[5], vertices[6],
+                vertices[6], vertices[7],
+                vertices[7], vertices[4],
+                
+                vertices[0], vertices[4],
+                vertices[1], vertices[5],
+                vertices[2], vertices[6],
+                vertices[3], vertices[7]
+            ]);
+            
+            const edgesMaterial = new THREE.LineBasicMaterial({ color: 0x4facfe, linewidth: 2 });
+            const edges = new THREE.LineSegments(edgesGeometry, edgesMaterial);
+            scene.add(edges);
+            
+            // 标记关键点
+            createPoint(vertices[3], 0x00ff00, 'A');  // A点 - 绿色
+            createPoint(new THREE.Vector3(0.5, 1, 0), 0xff00ff, 'P');  // P点 - 品红色
+            
+            // 初始Q点在CC1中点（0,1,0.5）
+            points.Q = createPoint(new THREE.Vector3(0, 1, cqValue), 0xff8c00, 'Q');
+            
+            // 创建顶点标签
+            createLabel(vertices[0], 'D');
+            createLabel(vertices[1], 'C');
+            createLabel(vertices[2], 'B');
+            createLabel(vertices[3], 'A');
+            createLabel(vertices[4], 'D₁');
+            createLabel(vertices[5], 'C₁');
+            createLabel(vertices[6], 'B₁');
+            createLabel(vertices[7], 'A₁');
+        }
+        
+        // 创建标记点
+        function createPoint(position, color, label) {
+            const geometry = new THREE.SphereGeometry(0.04, 16, 16);
+            const material = new THREE.MeshBasicMaterial({ color: color });
+            const point = new THREE.Mesh(geometry, material);
+            point.position.copy(position);
+            scene.add(point);
+            
+            // 创建标签
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 128;
+            canvas.height = 64;
+            context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.font = 'bold 24px Arial';
+            context.fillStyle = 'white';
+            context.textAlign = 'center';
+            context.fillText(label, canvas.width/2, canvas.height/2 + 8);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.position.set(position.x + 0.1, position.y + 0.1, position.z + 0.1);
+            sprite.scale.set(0.3, 0.15, 1);
+            scene.add(sprite);
+            
+            return point;
+        }
+        
+        // 创建顶点标签
+        function createLabel(position, text) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 64;
+            canvas.height = 32;
+            context.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.font = 'bold 20px Arial';
+            context.fillStyle = '#003366';
+            context.textAlign = 'center';
+            context.fillText(text, canvas.width/2, canvas.height/2 + 8);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.position.set(position.x - 0.1, position.y - 0.1, position.z - 0.1);
+            sprite.scale.set(0.15, 0.075, 1);
+            scene.add(sprite);
+        }
+        
+        // 更新截面
+        function updateSection() {
+            // 移除旧的截面
+            if (sectionMesh) {
+                scene.remove(sectionMesh);
+            }
+            
+            // 更新Q点位置
+            points.Q.position.set(0, 1, cqValue);
+            
+            // 获取点A、P、Q的位置
+            const A = vertices[3]; // A(1,0,0)
+            const P = new THREE.Vector3(0.5, 1, 0); // P(0.5,1,0)
+            const Q = new THREE.Vector3(0, 1, cqValue); // Q(0,1,CQ)
+            
+            // 计算截面多边形顶点（根据CQ值）
+            const sectionVertices = calculateSectionVertices(A, P, Q, cqValue);
+            
+            // 创建截面几何
+            const sectionGeometry = new THREE.BufferGeometry();
+            sectionGeometry.setFromPoints(sectionVertices);
+            
+            // 计算三角剖分（用于填充）
+            const indices = [];
+            for (let i = 1; i < sectionVertices.length - 1; i++) {
+                indices.push(0, i, i+1);
+            }
+            sectionGeometry.setIndex(indices);
+            sectionGeometry.computeVertexNormals();
+            
+            // 创建截面材质
+            const sectionMaterial = new THREE.MeshPhongMaterial({
+                color: 0xff5252,
+                side: THREE.DoubleSide,
+                opacity: 0.7,
+                transparent: true,
+                emissive: 0xff3333,
+                specular: 0x111111
+            });
+            
+            // 创建截面网格
+            sectionMesh = new THREE.Mesh(sectionGeometry, sectionMaterial);
+            scene.add(sectionMesh);
+            
+            // 更新截面信息
+            updateSectionInfo();
+        }
+        
+        // 计算截面顶点
+        function calculateSectionVertices(A, P, Q, cq) {
+            const vertices = [];
+            
+            // 添加固定点
+            vertices.push(A.clone());
+            vertices.push(P.clone());
+            vertices.push(Q.clone());
+            
+            // 根据CQ值计算额外交点
+            if (cq < 0) {
+                // 当CQ < 0时，截面与CD、BB1相交
+                const ratio = Math.abs(cq) * 0.5;
+                const R1 = new THREE.Vector3(0, 0.5 - ratio, 0);
+                vertices.push(R1);
+                
+                const R2 = new THREE.Vector3(0.5, 1, 1);
+                vertices.push(R2);
+            } 
+            else if (cq < 0.5) {
+                // 当CQ < 0.5时，截面为四边形（与DD1相交）
+                const R1 = new THREE.Vector3(0, 0, 2 * cq);
+                vertices.push(R1);
+            } 
+            else if (cq === 0.5) {
+                // 当CQ = 0.5时，截面为四边形（与D1相交）
+                const R1 = new THREE.Vector3(0, 0, 1);
+                vertices.push(R1);
+            } 
+            else if (cq < 1) {
+                // 当0.5 < CQ < 1时，截面为五边形
+                const yVal = 2 - 1 / cq;
+                const R2 = new THREE.Vector3(0, yVal, 1); // 与C1D1的交点
+                vertices.push(R2);
+                
+                const xVal = 1 - 0.5 / cq;
+                const R3 = new THREE.Vector3(xVal, 0, 1); // 与A1D1的交点
+                vertices.push(R3);
+            } 
+            else if (cq === 1) {
+                // 当CQ = 1时，截面为四边形
+                const C1 = new THREE.Vector3(0, 1, 1);
+                vertices.push(C1);
+                
+                const xVal = 0.5;
+                const R3 = new THREE.Vector3(xVal, 0, 1); // 与A1D1的交点
+                vertices.push(R3);
+            } 
+            else {
+                // 当CQ > 1时，截面与C1B1、A1B1相交
+                const ratio = (cq - 1) * 0.5;
+                const R1 = new THREE.Vector3(1, 1, 1 + ratio);
+                vertices.push(R1);
+                
+                const R2 = new THREE.Vector3(1, 0, 1 + ratio);
+                vertices.push(R2);
+            }
+            
+            return vertices;
+        }
+        
+        // 更新截面信息
+        function updateSectionInfo() {
+            const sectionType = document.getElementById('section-type');
+            const verticesCount = document.getElementById('vertices-count');
+            const qPosition = document.getElementById('q-position');
+            
+            let type, count, position;
+            
+            if (cqValue < 0) {
+                type = "五边形";
+                count = "5";
+                position = "延长线下方";
+            } 
+            else if (cqValue < 0.5) {
+                type = "四边形";
+                count = "4";
+                position = "靠近C点";
+            } 
+            else if (cqValue === 0.5) {
+                type = "四边形";
+                count = "4";
+                position = "中点";
+            } 
+            else if (cqValue < 1) {
+                type = "五边形";
+                count = "5";
+                position = "靠近C₁点";
+            } 
+            else if (cqValue === 1) {
+                type = "四边形";
+                count = "4";
+                position = "C₁点";
+            } 
+            else {
+                type = "五边形";
+                count = "5";
+                position = "延长线上方";
+            }
+            
+            sectionType.textContent = type;
+            verticesCount.textContent = count;
+            qPosition.textContent = position;
+        }
+        
+        // 更新命题状态
+        function updatePropositions() {
+            const p1 = document.getElementById('prop1');
+            const p2 = document.getElementById('prop2');
+            const p3 = document.getElementById('prop3');
+            const p4 = document.getElementById('prop4');
+            const p5 = document.getElementById('prop5');
+            
+            // 重置所有命题状态
+            p1.className = 'proposition';
+            p2.className = 'proposition';
+            p3.className = 'proposition';
+            p4.className = 'proposition';
+            p5.className = 'proposition';
+            
+            // 命题1：当CQ=1时，截面面积正确（实际面积√6/2 ≈ 1.2247）
+            if (Math.abs(cqValue - 1) < 0.01) {
+                p1.className = 'proposition correct';
+            }
+            
+            // 命题2：当0<CQ<1时截面为六边形（错误）
+            if (cqValue > 0 && cqValue < 1) {
+                p2.className = 'proposition incorrect';
+            }
+            
+            // 命题3：当CQ=0.5时，满足C1R=0.5（正确）
+            if (Math.abs(cqValue - 0.5) < 0.01) {
+                p3.className = 'proposition correct';
+            }
+            
+            // 命题4：当CQ=0.5时截面是等腰梯形（错误）
+            if (Math.abs(cqValue - 0.5) < 0.01) {
+                p4.className = 'proposition incorrect';
+            }
+            
+            // 命题5：当0<CQ<0.5时截面为四边形（正确）
+            if (cqValue > 0 && cqValue < 0.5) {
+                p5.className = 'proposition correct';
+            }
+        }
+        
+        // 窗口大小调整
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+        
+        // 鼠标事件处理
+        function onMouseDown(event) {
+            isDragging = true;
+            prevMouseX = event.clientX;
+            prevMouseY = event.clientY;
+        }
+        
+        function onMouseMove(event) {
+            if (!isDragging) return;
+            
+            const deltaX = event.clientX - prevMouseX;
+            const deltaY = event.clientY - prevMouseY;
+            
+            prevRotationX = deltaX * 0.01;
+            prevRotationY = deltaY * 0.01;
+            
+            prevMouseX = event.clientX;
+            prevMouseY = event.clientY;
+        }
+        
+        function onMouseUp() {
+            isDragging = false;
+        }
+        
+        function onMouseWheel(event) {
+            event.preventDefault();
+            camera.position.multiplyScalar(event.deltaY > 0 ? 1.05 : 0.95);
+        }
+        
+        // 自动播放
+        function toggleAutoPlay() {
+            const button = document.getElementById('auto-play');
+            
+            if (autoPlayInterval) {
+                clearInterval(autoPlayInterval);
+                autoPlayInterval = null;
+                button.textContent = "自动演示";
+                button.style.background = "linear-gradient(to right, #00c6ff, #0072ff)";
+            } else {
+                let direction = 1;
+                button.textContent = "停止演示";
+                button.style.background = "linear-gradient(to right, #ff8c00, #ff4500)";
+                
+                autoPlayInterval = setInterval(() => {
+                    cqValue += 0.01 * direction;
+                    
+                    if (cqValue > 1.5) {
+                        cqValue = 1.5;
+                        direction = -1;
+                    } else if (cqValue < -0.5) {
+                        cqValue = -0.5;
+                        direction = 1;
+                    }
+                    
+                    document.getElementById('cq-slider').value = cqValue * 100;
+                    document.getElementById('cq-value').textContent = cqValue.toFixed(2);
+                    document.getElementById('current-cq').textContent = cqValue.toFixed(2);
+                    updateSection();
+                    updatePropositions();
+                    resetActiveButton();
+                }, 70);
+            }
+        }
+        
+        // 重置视图
+        function resetView() {
+            camera.position.set(3, 2, 3);
+            camera.lookAt(0.5, 0.5, 0.5);
+        }
+        
+        // 动画循环
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (isDragging) {
+                // 旋转相机
+                camera.position.x = camera.position.x * Math.cos(prevRotationY) + camera.position.z * Math.sin(prevRotationY);
+                camera.position.z = camera.position.z * Math.cos(prevRotationY) - camera.position.x * Math.sin(prevRotationY);
+                
+                camera.position.y = camera.position.y * Math.cos(prevRotationX) + camera.position.z * Math.sin(prevRotationX);
+                camera.position.z = camera.position.z * Math.cos(prevRotationX) - camera.position.y * Math.sin(prevRotationX);
+            }
+            
+            camera.lookAt(0.5, 0.5, 0.5);
+            renderer.render(scene, camera);
+        }
+        
+        // 初始化应用
+        init();
+    </script>
+</body>
+</html>

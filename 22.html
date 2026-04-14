@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>茶水冲泡温度与口感变化模型</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --green-tea: #4caf50;
+            --black-tea: #e64a19;
+            --white-tea: #9e9e9e;
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #e74c3c;
+            --background: #f8f9fa;
+            --card-background: #ffffff;
+            --text: #333333;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px 0;
+            background: linear-gradient(to right, var(--primary), #2c3e50e0);
+            color: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+        }
+
+        .subtitle {
+            font-size: 1.3rem;
+            max-width: 800px;
+            margin: 0 auto;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1.5fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: var(--card-background);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease;
+        }
+
+        .panel:hover {
+            transform: translateY(-5px);
+        }
+
+        h2 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--secondary);
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        h3 {
+            margin-bottom: 15px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+        }
+
+        h3 i {
+            margin-right: 10px;
+            color: var(--secondary);
+        }
+
+        .slider-container {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 10px;
+            border-radius: 5px;
+            background: linear-gradient(to right, #e0e0e0, #f0f0f0);
+            outline: none;
+            margin-top: 5px;
+            transition: all 0.3s;
+        }
+
+        input[type="range"]:hover {
+            background: linear-gradient(to right, var(--secondary), #64b5f6);
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--secondary);
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #2980b9;
+            transform: scale(1.2);
+        }
+
+        .value-display {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.1rem;
+            margin-top: 10px;
+            padding: 0 5px;
+        }
+
+        .tea-type-selector {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .tea-type {
+            flex: 1;
+            min-width: 120px;
+            padding: 18px 15px;
+            text-align: center;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            background-color: #f8f9fa;
+        }
+
+        .tea-type:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .tea-type.active {
+            border-color: var(--accent);
+            background-color: rgba(231, 76, 60, 0.05);
+        }
+
+        .tea-type.green {
+            border-top: 4px solid var(--green-tea);
+        }
+        
+        .tea-type.black {
+            border-top: 4px solid var(--black-tea);
+        }
+        
+        .tea-type.white {
+            border-top: 4px solid var(--white-tea);
+        }
+
+        .tea-type-icon {
+            font-size: 2.2rem;
+            margin-bottom: 8px;
+        }
+
+        .chart-container {
+            height: 300px;
+            margin-top: 10px;
+        }
+
+        .temp-display {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .temp-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 18px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .temp-label {
+            font-size: 1rem;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .temp-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+        }
+
+        .temp-unit {
+            font-size: 1.1rem;
+            color: #666;
+            margin-left: 3px;
+        }
+
+        .temp-info {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .flavor-profile {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .flavor-card {
+            padding: 18px;
+            border-radius: 10px;
+            background: #f8f9fa;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .flavor-heading {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .metric-name {
+            font-weight: 600;
+        }
+
+        .metric-value {
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .metric-bar {
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .metric-bar-inner {
+            height: 100%;
+            border-radius: 5px;
+        }
+
+        .sweetness .metric-bar-inner { background: linear-gradient(to right, #f1c40f, #f39c12); }
+        .bitterness .metric-bar-inner { background: linear-gradient(to right, #3498db, #2980b9); }
+        .aroma .metric-bar-inner { background: linear-gradient(to right, #9b59b6, #8e44ad); }
+        .body .metric-bar-inner { background: linear-gradient(to right, #27ae60, #2ecc71); }
+
+        .temp-table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+            background: var(--card-background);
+        }
+
+        .temp-table th {
+            background: var(--primary);
+            color: white;
+            text-align: left;
+            padding: 15px;
+        }
+
+        .temp-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .temp-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .model-section {
+            background: var(--card-background);
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .formula-box {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid var(--accent);
+            overflow-x: auto;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 992px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .temp-table {
+                display: block;
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="animated-header">
+            <h1>茶汤温度与口感变化数学模型</h1>
+            <p class="subtitle">科学模拟冲泡参数对茶汤温度变化与口感的影响</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="panel">
+                <h2><i class="fas fa-sliders-h"></i> 冲泡参数控制</h2>
+                
+                <div class="control-group">
+                    <h3><i class="fas fa-seedling"></i> 茶叶品种</h3>
+                    <div class="tea-type-selector">
+                        <div class="tea-type green active" data-type="green">
+                            <div class="tea-type-icon">🍃</div>
+                            <div>绿茶</div>
+                        </div>
+                        <div class="tea-type black" data-type="black">
+                            <div class="tea-type-icon">🌿</div>
+                            <div>红茶</div>
+                        </div>
+                        <div class="tea-type white" data-type="white">
+                            <div class="tea-type-icon">🍵</div>
+                            <div>白茶</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h3><i class="fas fa-thermometer-half"></i> 初始水温</h3>
+                    <div class="slider-container">
+                        <input type="range" id="tempSlider" min="60" max="100" step="1" value="80">
+                        <div class="value-display">
+                            <span>60°C</span>
+                            <span id="tempValue">80°C</span>
+                            <span>100°C</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h3><i class="fas fa-weight-hanging"></i> 茶叶用量</h3>
+                    <div class="slider-container">
+                        <input type="range" id="weightSlider" min="1" max="10" step="0.5" value="5">
+                        <div class="value-display">
+                            <span>1g</span>
+                            <span id="weightValue">5g</span>
+                            <span>10g</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h3><i class="fas fa-temperature-low"></i> 环境温度</h3>
+                    <div class="slider-container">
+                        <input type="range" id="envTempSlider" min="10" max="40" step="1" value="25">
+                        <div class="value-display">
+                            <span>10°C</span>
+                            <span id="envTempValue">25°C</span>
+                            <span>40°C</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="temp-display">
+                    <div class="temp-card">
+                        <div class="temp-label">最佳水温</div>
+                        <div class="temp-value" id="optTempValue">80</div><span class="temp-unit">°C</span>
+                        <div class="temp-info" id="tempInfo">(绿茶推荐)</div>
+                    </div>
+                    <div class="temp-card">
+                        <div class="temp-label">冷却时间</div>
+                        <div class="temp-value" id="coolTimeValue">8.5</div><span class="temp-unit">分钟</span>
+                        <div class="temp-info">至60°C</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h2><i class="fas fa-chart-line"></i> 茶汤温度变化曲线</h2>
+                <div class="chart-container">
+                    <canvas id="tempTimeChart"></canvas>
+                </div>
+                
+                <h2 style="margin-top: 25px;"><i class="fas fa-table"></i> 温度测量数据表</h2>
+                <div style="overflow-x: auto;">
+                    <table class="temp-table">
+                        <thead>
+                            <tr>
+                                <th>时间 (分:秒)</th>
+                                <th>温度 (°C)</th>
+                                <th>口感阶段</th>
+                                <th>温度变化率 (°C/分钟)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tempTableBody">
+                            <!-- Data will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h2><i class="fas fa-wine-glass"></i> 茶汤口感分析</h2>
+                <div class="chart-container">
+                    <canvas id="tasteChart"></canvas>
+                </div>
+                
+                <div class="flavor-profile">
+                    <div class="flavor-card sweetness">
+                        <div class="flavor-heading">
+                            <div class="metric-name">甜度</div>
+                            <div class="metric-value" id="sweetness-val">7.2</div>
+                        </div>
+                        <div class="metric-bar">
+                            <div class="metric-bar-inner" id="sweetness-bar" style="width: 72%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="flavor-card bitterness">
+                        <div class="flavor-heading">
+                            <div class="metric-name">苦度</div>
+                            <div class="metric-value" id="bitterness-val">2.8</div>
+                        </div>
+                        <div class="metric-bar">
+                            <div class="metric-bar-inner" id="bitterness-bar" style="width: 28%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="flavor-card aroma">
+                        <div class="flavor-heading">
+                            <div class="metric-name">香气</div>
+                            <div class="metric-value" id="aroma-val">8.1</div>
+                        </div>
+                        <div class="metric-bar">
+                            <div class="metric-bar-inner" id="aroma-bar" style="width: 81%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="flavor-card body">
+                        <div class="flavor-heading">
+                            <div class="metric-name">醇厚度</div>
+                            <div class="metric-value" id="body-val">6.5</div>
+                        </div>
+                        <div class="metric-bar">
+                            <div class="metric-bar-inner" id="body-bar" style="width: 65%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="model-section">
+            <h2><i class="fas fa-calculator"></i> 数学建模分析</h2>
+            <p>本模型基于热力学冷却定律和茶叶化学物质析出动力学构建，模拟冲泡过程中温度变化对口感因子的影响。</p>
+            
+            <div class="formula-box">
+                <h3>1. 温度变化模型 (牛顿冷却定律)</h3>
+                <p>\[ T(t) = T_{\text{env}} + (T_0 - T_{\text{env}}) \cdot e^{-kt} \]</p>
+                <p>其中：</p>
+                <ul>
+                    <li>\( T(t) \): 时间 t 时刻的茶汤温度（℃）</li>
+                    <li>\( T_{\text{env}} \): 环境温度（℃）</li>
+                    <li>\( T_0 \): 初始水温（℃）</li>
+                    <li>\( k \): 茶具散热系数（此模型中 k=0.035 min⁻¹）</li>
+                </ul>
+            </div>
+            
+            <div class="formula-box">
+                <h3>2. 化学物质析出模型</h3>
+                <p>\[ C_i(t, T) = A_i \cdot (1 - e^{-B_i \cdot t}) \cdot (1 - e^{-C_i \cdot T}) \]</p>
+                <p>其中：</p>
+                <ul>
+                    <li>\( C_i \): 第 i 种物质浓度（i=甜味物质，涩味物质，芳香物质）</li>
+                    <li>\( A_i \): 茶叶中可溶物质的最大含量（依赖茶叶种类）</li>
+                    <li>\( B_i \): 时间对释放的影响系数（依赖茶叶种类）</li>
+                    <li>\( C_i \): 温度对释放的影响系数（依赖茶叶种类）</li>
+                </ul>
+            </div>
+            
+            <div class="formula-box">
+                <h3>3. 口感因子计算模型</h3>
+                <p>口味特性是温度曲线和时间的函数：</p>
+                <p>\[ \text{口感得分} = \alpha \cdot \int_{0}^{t} C_{\text{sweet}}(u,T(u)) \,du - \beta \cdot \int_{0}^{t} C_{\text{bitter}}(u,T(u)) \,du \]</p>
+                <ul>
+                    <li>绿茶: α高，β低 - 突出鲜爽度</li>
+                    <li>红茶: α中等，β中等 - 强调醇厚度</li>
+                    <li>白茶: α高，β极低 - 突出清甜度</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM元素引用
+        const tempSlider = document.getElementById('tempSlider');
+        const tempValue = document.getElementById('tempValue');
+        const weightSlider = document.getElementById('weightSlider');
+        const weightValue = document.getElementById('weightValue');
+        const envTempSlider = document.getElementById('envTempSlider');
+        const envTempValue = document.getElementById('envTempValue');
+        const teaTypes = document.querySelectorAll('.tea-type');
+        const optTempValue = document.getElementById('optTempValue');
+        const tempInfo = document.getElementById('tempInfo');
+        const coolTimeValue = document.getElementById('coolTimeValue');
+        
+        // 风味指标元素
+        const sweetnessVal = document.getElementById('sweetness-val');
+        const bitternessVal = document.getElementById('bitterness-val');
+        const aromaVal = document.getElementById('aroma-val');
+        const bodyVal = document.getElementById('body-val');
+        const sweetnessBar = document.getElementById('sweetness-bar');
+        const bitternessBar = document.getElementById('bitterness-bar');
+        const aromaBar = document.getElementById('aroma-bar');
+        const bodyBar = document.getElementById('body-bar');
+        const tempTableBody = document.getElementById('tempTableBody');
+        
+        // 图表实例
+        let tempTimeChart, tasteChart;
+        
+        // 茶叶参数
+        const teaParams = {
+            green: {
+                name: "绿茶",
+                color: '#4caf50',
+                optTemp: 80,
+                sweetFactor: 0.8,
+                bitterFactor: 0.4,
+                aromaFactor: 0.9,
+                bodyFactor: 0.7,
+                coolingRate: 0.035
+            },
+            black: {
+                name: "红茶",
+                color: '#e64a19',
+                optTemp: 95,
+                sweetFactor: 0.7,
+                bitterFactor: 0.8,
+                aromaFactor: 1.0,
+                bodyFactor: 0.9,
+                coolingRate: 0.032
+            },
+            white: {
+                name: "白茶",
+                color: '#9e9e9e',
+                optTemp: 85,
+                sweetFactor: 0.9,
+                bitterFactor: 0.3,
+                aromaFactor: 0.8,
+                bodyFactor: 0.6,
+                coolingRate: 0.038
+            }
+        };
+        
+        // 当前选择的茶叶类型（默认绿茶）
+        let currentTeaType = 'green';
+        let currentTea = teaParams.green;
+        
+        // 初始化图表
+        function initCharts() {
+            // 温度-时间图表
+            const tempTimeCtx = document.getElementById('tempTimeChart').getContext('2d');
+            tempTimeChart = new Chart(tempTimeCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '茶汤温度 (°C)',
+                        data: [],
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: '最佳饮用窗口',
+                        data: new Array(61).fill(65),
+                        borderColor: '#27ae60',
+                        borderDash: [5, 5],
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            title: {
+                                display: true,
+                                text: '温度 (°C)',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            min: 40,
+                            max: 100
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '冲泡时间 (分钟)',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: '茶汤温度随时间变化曲线'
+                        }
+                    },
+                    elements: {
+                        point:{
+                            radius: 0
+                        }
+                    },
+                    animation: {
+                        duration: 500,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+            
+            // 口感特征图表
+            const tasteCtx = document.getElementById('tasteChart').getContext('2d');
+            tasteChart = new Chart(tasteCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['甜度', '苦度', '香气', '醇厚度', '鲜爽度'],
+                    datasets: [{
+                        label: '口感特征',
+                        data: [7.2, 2.8, 8.1, 6.5, 8.7],
+                        fill: true,
+                        backgroundColor: 'rgba(46, 125, 50, 0.2)',
+                        borderColor: 'rgba(46, 125, 50, 0.8)',
+                        pointBackgroundColor: 'rgba(46, 125, 50, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(46, 125, 50, 1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: {
+                                display: true
+                            },
+                            min: 0,
+                            max: 10,
+                            ticks: {
+                                stepSize: 2
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '冲泡完成的口感特征'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 计算茶汤温度变化
+        function calculateTeaTemperature(minutes, initialTemp, envTemp, coolingRate) {
+            // 牛顿冷却定律计算：T(t) = T_env + (T_0 - T_env) * e^(-k*t)
+            return envTemp + (initialTemp - envTemp) * Math.exp(-coolingRate * minutes);
+        }
+        
+        // 计算冷却到目标温度所需时间
+        function calculateCoolingTime(initialTemp, targetTemp, envTemp, coolingRate) {
+            return -Math.log((targetTemp - envTemp) / (initialTemp - envTemp)) / coolingRate;
+        }
+        
+        // 计算口感模型
+        function calculateTasteProfile(teaType, temperature, weight, envTemp, coolingRate) {
+            const t = weight / 5;
+            const tempDiff = Math.abs(temperature - teaType.optTemp);
+            
+            // 计算公式中使用的各项影响因子
+            const tempFactor = Math.exp(-0.5 * Math.pow(tempDiff/15, 2));
+            const weightFactor = t;
+            const coolingFactor = 1 + (Math.abs(envTemp - 25)/20);
+            
+            // 计算各种口味指标
+            let sweetness = 6 + 4 * teaType.sweetFactor * tempFactor * Math.min(weightFactor, 1.2);
+            let bitterness = 1 + 5 * teaType.bitterFactor * coolingFactor * 
+                         (0.7 * Math.max(0, (temperature - teaType.optTemp)/30) + 
+                          0.3 * Math.min(weightFactor, 1.5));
+            
+            let aroma = 5 + 5 * teaType.aromaFactor * tempFactor * Math.min(weightFactor, 1) * coolingFactor;
+            let body = 4 + 6 * teaType.bodyFactor * 
+                   (0.4 * weightFactor + 0.6 * Math.min(1, temperature/100));
+            
+            // 确保数值在0-10范围内
+            sweetness = Math.min(10, Math.max(0, sweetness));
+            bitterness = Math.min(10, Math.max(0, bitterness));
+            aroma = Math.min(10, Math.max(0, aroma));
+            body = Math.min(10, Math.max(0, body));
+            
+            return {sweetness, bitterness, aroma, body};
+        }
+        
+        // 生成温度表格数据
+        function generateTempTableData(initialTemp, envTemp, coolingRate) {
+            const data = [];
+            const phaseInfo = [
+                { min: 0, max: 2, phase: "茶叶湿润阶段" },
+                { min: 2.1, max: 4, phase: "香气释放阶段" },
+                { min: 4.1, max: 7, phase: "滋味物质溶出阶段" },
+                { min: 7.1, max: 60, phase: "风味平衡阶段" }
+            ];
+            
+            let prevTemp = initialTemp;
+            
+            for(let minutes = 0; minutes <= 10; minutes += 1) {
+                const temp = calculateTeaTemperature(minutes, initialTemp, envTemp, coolingRate);
+                const rate = (prevTemp - temp).toFixed(1);
+                prevTemp = temp;
+                
+                // 确定当前阶段
+                let phase = "未定义";
+                for(const info of phaseInfo) {
+                    if(minutes >= info.min && minutes <= info.max) {
+                        phase = info.phase;
+                        break;
+                    }
+                }
+                
+                data.push({
+                    time: `${minutes}:00`,
+                    temp: temp.toFixed(1),
+                    phase: phase,
+                    rate: rate
+                });
+            }
+            
+            return data;
+        }
+        
+        // 更新温度表格UI
+        function updateTempTable(data) {
+            let tableContent = '';
+            
+            data.forEach(item => {
+                tableContent += `
+                <tr>
+                    <td>${item.time}</td>
+                    <td>${item.temp}</td>
+                    <td>${item.phase}</td>
+                    <td>${item.rate}</td>
+                </tr>
+                `;
+            });
+            
+            tempTableBody.innerHTML = tableContent;
+        }
+        
+        // 更新UI
+        function updateUI() {
+            const temperature = parseFloat(tempSlider.value);
+            const weight = parseFloat(weightSlider.value);
+            const envTemp = parseFloat(envTempSlider.value);
+            const coolingRate = currentTea.coolingRate;
+            
+            // 更新显示值
+            tempValue.textContent = temperature + "°C";
+            weightValue.textContent = weight.toFixed(1) + "g";
+            envTempValue.textContent = envTemp + "°C";
+            optTempValue.textContent = currentTea.optTemp;
+            tempInfo.textContent = "(" + currentTea.name + "推荐)";
+            
+            // 计算所需冷却时间
+            const coolTime = calculateCoolingTime(temperature, 60, envTemp, coolingRate);
+            coolTimeValue.textContent = coolTime.toFixed(1);
+            
+            // 计算口感特征
+            const profile = calculateTasteProfile(currentTea, temperature, weight, envTemp, coolingRate);
+            
+            // 更新风味指标显示
+            sweetnessVal.textContent = profile.sweetness.toFixed(1);
+            bitternessVal.textContent = profile.bitterness.toFixed(1);
+            aromaVal.textContent = profile.aroma.toFixed(1);
+            bodyVal.textContent = profile.body.toFixed(1);
+            
+            // 更新进度条
+            sweetnessBar.style.width = profile.sweetness * 10 + "%";
+            bitternessBar.style.width = profile.bitterness * 10 + "%";
+            aromaBar.style.width = profile.aroma * 10 + "%";
+            bodyBar.style.width = profile.body * 10 + "%";
+            
+            // 更新雷达图数据
+            tasteChart.data.datasets[0].data = [
+                profile.sweetness,
+                profile.bitterness,
+                profile.aroma,
+                profile.body,
+                9.5 - profile.bitterness * 0.5 // 鲜爽度计算
+            ];
+            
+            // 更新雷达图颜色以匹配茶叶类型
+            tasteChart.data.datasets[0].backgroundColor = 'rgba(' + 
+                parseInt(currentTea.color.slice(1,3), 16) + ',' +
+                parseInt(currentTea.color.slice(3,5), 16) + ',' +
+                parseInt(currentTea.color.slice(5,7), 16) + ', 0.2)';
+                
+            tasteChart.data.datasets[0].borderColor = currentTea.color;
+            tasteChart.data.datasets[0].pointBackgroundColor = currentTea.color;
+            tasteChart.data.datasets[0].pointHoverBorderColor = currentTea.color;
+            
+            tasteChart.update();
+            
+            // 更新温度曲线
+            const temperatureData = [];
+            const labels = [];
+            for (let i = 0; i <= 10; i += 0.5) {
+                labels.push(i.toFixed(1));
+                const temp = calculateTeaTemperature(i, temperature, envTemp, coolingRate);
+                temperatureData.push({
+                    x: i,
+                    y: temp
+                });
+            }
+            
+            let minTemp = Math.min(...temperatureData.map(p => p.y));
+            const maxTemp = Math.max(...temperatureData.map(p => p.y));
+            
+            minTemp = Math.min(40, Math.floor(minTemp / 5) * 5);
+            
+            tempTimeChart.data.labels = labels;
+            tempTimeChart.data.datasets[0].data = temperatureData;
+            tempTimeChart.options.scales.y.min = minTemp;
+            tempTimeChart.options.scales.y.max = maxTemp + 5;
+            tempTimeChart.update();
+            
+            // 更新温度表格
+            const tableData = generateTempTableData(temperature, envTemp, coolingRate);
+            updateTempTable(tableData);
+        }
+        
+        // 事件监听
+        teaTypes.forEach(type => {
+            type.addEventListener('click', () => {
+                // 更新UI选择状态
+                teaTypes.forEach(t => t.classList.remove('active'));
+                type.classList.add('active');
+                
+                // 更新茶叶种类
+                currentTeaType = type.getAttribute('data-type');
+                currentTea = teaParams[currentTeaType];
+                
+                // 更新模拟
+                updateUI();
+            });
+        });
+        
+        tempSlider.addEventListener('input', updateUI);
+        weightSlider.addEventListener('input', updateUI);
+        envTempSlider.addEventListener('input', updateUI);
+        
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            updateUI();
+        });
+    </script>
+</body>
+</html>

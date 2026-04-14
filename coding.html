@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幸运抽奖环节</title>
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+QingKe+HuangYou&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'ZCOOL QingKe HuangYou', sans-serif;
+            background: linear-gradient(135deg, #c62e2e 0%, #9e1f1f 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #f9db76;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* 装饰元素 */
+        .cloud {
+            position: absolute;
+            background: rgba(249, 219, 118, 0.15);
+            border-radius: 50%;
+            filter: blur(20px);
+            z-index: 0;
+        }
+        
+        .cloud:nth-child(1) { top: 10%; left: 5%; width: 200px; height: 100px; }
+        .cloud:nth-child(2) { top: 70%; right: 10%; width: 250px; height: 120px; }
+        .cloud:nth-child(3) { bottom: 20%; left: 15%; width: 180px; height: 90px; }
+        .cloud:nth-child(4) { top: 30%; right: 25%; width: 220px; height: 110px; }
+        
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            background: rgba(183, 29, 29, 0.7);
+            border: 6px solid #f9db76;
+            border-radius: 20px;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5),
+                        inset 0 0 30px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            position: relative;
+            z-index: 10;
+            overflow: hidden;
+        }
+        
+        .container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 12px;
+            background: linear-gradient(90deg, transparent, #f9db76, transparent);
+            opacity: 0.7;
+        }
+        
+        .container::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 12px;
+            background: linear-gradient(90deg, transparent, #f9db76, transparent);
+            opacity: 0.7;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+            padding: 10px 0;
+        }
+        
+        .header::before, .header::after {
+            content: "";
+            position: absolute;
+            height: 30px;
+            width: 80px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M20,50 C30,30 70,30 80,50 C70,70 30,70 20,50 Z' fill='none' stroke='%23f9db76' stroke-width='4'/%3E%3C/svg%3E") no-repeat center;
+            background-size: contain;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .header::before { left: 5%; }
+        .header::after { right: 5%; transform: translateY(-50%) rotateY(180deg); }
+        
+        h1 {
+            font-family: 'Ma Shan Zheng', cursive;
+            font-size: 4.5rem;
+            letter-spacing: 8px;
+            color: #f9db76;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            margin: 10px 0;
+        }
+        
+        .subtitle {
+            font-size: 1.3rem;
+            letter-spacing: 4px;
+            opacity: 0.9;
+        }
+        
+        .lottery-area {
+            background: rgba(209, 54, 44, 0.8);
+            border: 4px solid #f9db76;
+            border-radius: 15px;
+            height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 30px 0 40px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.4);
+        }
+        
+        .lottery-area::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(90deg, transparent 49%, rgba(249, 219, 118, 0.15) 50%, transparent 51%),
+                linear-gradient(transparent 49%, rgba(249, 219, 118, 0.15) 50%, transparent 51%);
+            background-size: 30px 30px;
+            pointer-events: none;
+        }
+        
+        #nameDisplay {
+            font-size: 5rem;
+            font-weight: bold;
+            color: #fff;
+            text-align: center;
+            text-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+            padding: 0 20px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .lottery-area::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            height: 90%;
+            border: 2px dashed rgba(249, 219, 118, 0.3);
+            border-radius: 10px;
+            pointer-events: none;
+        }
+        
+        #nameDisplay.highlight {
+            color: #ffea00;
+            text-shadow: 0 0 20px #ffdd00, 0 0 40px #ffdd00;
+            transform: scale(1.2);
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { text-shadow: 0 0 10px #ffdd00; }
+            50% { text-shadow: 0 0 30px #ffdd00, 0 0 60px #ffdd00; }
+            100% { text-shadow: 0 0 10px #ffdd00; }
+        }
+        
+        .btn-area {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        #startBtn {
+            font-family: 'Ma Shan Zheng', cursive;
+            background: linear-gradient(to bottom, #f9db76, #d8a520);
+            border: none;
+            border-radius: 50px;
+            color: #b71d1d;
+            font-size: 2.5rem;
+            padding: 15px 70px;
+            cursor: pointer;
+            outline: none;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            position: relative;
+            transition: all 0.3s ease;
+            letter-spacing: 5px;
+        }
+        
+        #startBtn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(to bottom, #ffea00, #e8b020);
+        }
+        
+        #startBtn:active {
+            transform: translateY(0);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        #startBtn::before {
+            content: "";
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            background: linear-gradient(45deg, #f9db76, #ffffff, #f9db76);
+            background-size: 400% 400%;
+            z-index: -1;
+            border-radius: 60px;
+            animation: shine 3s infinite linear;
+            filter: blur(15px);
+            opacity: 0.7;
+        }
+        
+        @keyframes shine {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+        
+        .decoration {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            opacity: 0.7;
+            z-index: 1;
+        }
+        
+        .decoration:nth-child(1) {
+            top: 20px;
+            left: 20px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='none' stroke='%23f9db76' stroke-width='2' d='M50,20 C70,25 80,40 70,55 C60,70 40,70 30,55 C20,40 30,25 50,20 Z'/%3E%3C/svg%3E") no-repeat center;
+        }
+        
+        .decoration:nth-child(2) {
+            bottom: 20px;
+            right: 20px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='none' stroke='%23f9db76' stroke-width='2' d='M50,20 C70,25 80,40 70,55 C60,70 40,70 30,55 C20,40 30,25 50,20 Z'/%3E%3C/svg%3E") no-repeat center;
+            transform: rotate(180deg);
+        }
+        
+        .bottom-text {
+            text-align: center;
+            font-size: 1rem;
+            opacity: 0.8;
+            letter-spacing: 2px;
+            margin-top: 15px;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            h1 { font-size: 3rem; }
+            #nameDisplay { font-size: 3.5rem; }
+            .lottery-area { height: 220px; }
+            #startBtn { font-size: 2rem; padding: 12px 50px; }
+        }
+        
+        @media (max-width: 480px) {
+            h1 { font-size: 2.2rem; letter-spacing: 4px; }
+            .subtitle { font-size: 1rem; }
+            #nameDisplay { font-size: 2.5rem; }
+            .lottery-area { height: 180px; }
+            #startBtn { font-size: 1.8rem; padding: 10px 40px; }
+            .container { padding: 20px 15px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景装饰云朵 -->
+    <div class="cloud"></div>
+    <div class="cloud"></div>
+    <div class="cloud"></div>
+    <div class="cloud"></div>
+    
+    <div class="container">
+        <!-- 装饰元素 -->
+        <div class="decoration"></div>
+        <div class="decoration"></div>
+        
+        <div class="header">
+            <div class="subtitle">FORTUNE LOTTERY</div>
+            <h1>幸运抽奖环节</h1>
+            <div class="subtitle">LUCK WILL FIND YOU</div>
+        </div>
+        
+        <div class="lottery-area">
+            <div id="nameDisplay">点击开始抽奖</div>
+        </div>
+        
+        <div class="btn-area">
+            <button id="startBtn">开始抽奖</button>
+        </div>
+        
+        <div class="bottom-text">祝您好运 · 幸运降临</div>
+    </div>
+    
+    <script>
+        // 姓名数组
+        const names = [
+            "吴菊文", "罗在兵", "苏键", "许静", "赵同志", "轩阳梦", 
+            "周宗宇", "陈凤", "张禹", "丁娟娟", "汪聪", "唐天辉", 
+            "徐峰", "刘亚冰", "周健", "肖玉浩", "郑丽", "邹蓉梅", 
+            "李先敏", "张文生", "王孝金", "陈绍虎", "祁晨婷", "潘磊", 
+            "周涛", "孙蕾蕾", "丁时磊", "张海宾", "殷世臣", "姜珍伟", 
+            "吴晓莉", "陈礼庆", "舒桂舟", "朱月霞", "喻震", "周培祥", 
+            "贾秋雨"
+        ];
+        
+        // 获取DOM元素
+        const nameDisplay = document.getElementById('nameDisplay');
+        const startBtn = document.getElementById('startBtn');
+        
+        // 状态变量
+        let isRolling = false;
+        let rollInterval;
+        let rollSpeed = 80; // 初始滚动速度(毫秒)
+        let slowDownCount = 0;
+        
+        // 开始抽奖
+        function startLottery() {
+            if (isRolling) return;
+            
+            isRolling = true;
+            startBtn.textContent = "停止抽奖";
+            nameDisplay.classList.remove('highlight');
+            slowDownCount = 0;
+            
+            // 快速滚动效果
+            rollInterval = setInterval(() => {
+                const randomIndex = Math.floor(Math.random() * names.length);
+                nameDisplay.textContent = names[randomIndex];
+                
+                // 添加抖动效果
+                nameDisplay.style.transform = `translateX(${Math.random() * 10 - 5}px)`;
+            }, rollSpeed);
+        }
+        
+        // 停止抽奖
+        function stopLottery() {
+            if (!isRolling) return;
+            
+            // 先减慢速度，增加戏剧效果
+            clearInterval(rollInterval);
+            slowDownCount++;
+            
+            if (slowDownCount < 8) {
+                rollSpeed += 30;
+                rollInterval = setInterval(() => {
+                    const randomIndex = Math.floor(Math.random() * names.length);
+                    nameDisplay.textContent = names[randomIndex];
+                    nameDisplay.style.transform = `translateX(${Math.random() * 5 - 2.5}px)`;
+                }, rollSpeed);
+                
+                setTimeout(stopLottery, 300);
+                return;
+            }
+            
+            // 完全停止
+            isRolling = false;
+            startBtn.textContent = "开始抽奖";
+            nameDisplay.style.transform = "translateX(0)";
+            
+            // 最终选择一个随机姓名
+            const winnerIndex = Math.floor(Math.random() * names.length);
+            nameDisplay.textContent = names[winnerIndex];
+            
+            // 添加高亮效果
+            setTimeout(() => {
+                nameDisplay.classList.add('highlight');
+            }, 100);
+        }
+        
+        // 按钮点击事件
+        startBtn.addEventListener('click', () => {
+            if (isRolling) {
+                stopLottery();
+            } else {
+                // 重置速度
+                rollSpeed = 80;
+                startLottery();
+            }
+        });
+        
+        // 添加键盘支持
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                if (isRolling) {
+                    stopLottery();
+                } else {
+                    rollSpeed = 80;
+                    startLottery();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

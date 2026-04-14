@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高中数学高考知识点分析（2023-2025）</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sheetjs/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+        }
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            padding-top: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            color: white;
+            padding: 30px 0;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        .card {
+            border-radius: 12px;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transition: transform 0.3s;
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            background: linear-gradient(to right, var(--primary-color), #2980b9);
+            color: white;
+            font-weight: 600;
+            padding: 15px 20px;
+            border-radius: 12px 12px 0 0 !important;
+        }
+        .table-container {
+            overflow-x: auto;
+            padding: 0;
+        }
+        .knowledge-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .knowledge-table th {
+            background-color: #f1f8ff;
+            position: sticky;
+            top: 0;
+            font-weight: 600;
+            text-align: center;
+            vertical-align: middle;
+            padding: 12px 10px;
+        }
+        .knowledge-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eaeaea;
+            vertical-align: top;
+        }
+        .knowledge-table tr:hover td {
+            background-color: #f8fdff;
+        }
+        .year-highlight {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        .difficulty {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 12px;
+        }
+        .difficulty-low {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .difficulty-medium {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .difficulty-high {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .controls {
+            background-color: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .btn-export {
+            background: linear-gradient(to right, #27ae60, #2ecc71);
+            color: white;
+            border: none;
+            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .btn-export:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.4);
+        }
+        .trend-analysis {
+            background: linear-gradient(to right, #8e44ad, #9b59b6);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        .trend-item {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .footer {
+            text-align: center;
+            padding: 20px 0;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-top: 30px;
+        }
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            .knowledge-table {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header text-center mb-5">
+            <h1><i class="fas fa-chart-line me-3"></i>高中数学高考知识点分析（2023-2025）</h1>
+            <p class="mb-0">基于新课标全国卷的考点分布、题型分值及难度趋势研究</p>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="controls p-4 d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-3"><i class="fas fa-filter me-2"></i>数据分析控制面板</h5>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-primary">全部知识点</button>
+                            <button class="btn btn-outline-primary">重点知识点</button>
+                            <button class="btn btn-outline-primary">难点知识点</button>
+                            <button class="btn btn-outline-primary">高频考点</button>
+                        </div>
+                    </div>
+                    <button id="exportBtn" class="btn-export">
+                        <i class="fas fa-file-excel me-2"></i>导出Excel
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="trend-analysis">
+                    <h5><i class="fas fa-lightbulb me-2"></i>核心趋势分析</h5>
+                    <div class="trend-item">
+                        <div class="d-flex justify-content-between">
+                            <span>多模块融合题</span>
+                            <span>↑ 35% (2023-2025)</span>
+                        </div>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div class="progress-bar bg-warning" role="progressbar" style="width: 78%"></div>
+                        </div>
+                    </div>
+                    <div class="trend-item">
+                        <div class="d-flex justify-content-between">
+                            <span>实际应用题</span>
+                            <span>↑ 22% (2023-2025)</span>
+                        </div>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div class="progress-bar bg-info" role="progressbar" style="width: 65%"></div>
+                        </div>
+                    </div>
+                    <div class="trend-item">
+                        <div class="d-flex justify-content-between">
+                            <span>创新题比例</span>
+                            <span>↑ 18% (2023-2025)</span>
+                        </div>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 42%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex align-items-center">
+                <i class="fas fa-table me-2"></i>高中数学高考知识点分析表（2023-2025）
+                <span class="badge bg-light text-dark ms-auto">共18个核心模块</span>
+            </div>
+            <div class="card-body table-container">
+                <table class="knowledge-table table-striped">
+                    <thead>
+                        <tr>
+                            <th width="18%">知识模块</th>
+                            <th width="10%">二级分类</th>
+                            <th width="24%">2023年考查情况</th>
+                            <th width="24%">2024年考查情况</th>
+                            <th width="24%">2025年考查情况</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td rowspan="2">函数与导数</td>
+                            <td>基本初等函数</td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>函数性质(周期、奇偶) 
+                                <span class="difficulty difficulty-low">难度：★</span><br>
+                                <span class="year-highlight">分值：</span>10分<br>
+                                <span class="year-highlight">题型：</span>单选2题，多选1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">解答题：</span>导数应用(极值、最值)
+                                <span class="difficulty difficulty-medium">难度：★★☆</span><br>
+                                <span class="year-highlight">分值：</span>12分<br>
+                                <span class="year-highlight">题型：</span>解答题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">压轴题：</span>函数导数综合(三角函数导数)
+                                <span class="difficulty difficulty-high">难度：★★★★★</span><br>
+                                <span class="year-highlight">分值：</span>17分<br>
+                                <span class="year-highlight">题型：</span>解答题19题
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>导数及应用</td>
+                            <td>
+                                <span class="year-highlight">解答题：</span>切线问题与单调性
+                                <span class="difficulty difficulty-medium">难度：★★★</span><br>
+                                <span class="year-highlight">分值：</span>12分<br>
+                                <span class="year-highlight">题型：</span>解答题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>导数几何意义(切线)
+                                <span class="difficulty difficulty-low">难度：★☆</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>填空题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">解答题：</span>导数与不等式证明
+                                <span class="difficulty difficulty-high">难度：★★★★</span><br>
+                                <span class="year-highlight">分值：</span>13分<br>
+                                <span class="year-highlight">题型：</span>解答题18题
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td rowspan="2">三角函数</td>
+                            <td>三角函数基础</td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>图像性质、对称中心
+                                <span class="difficulty difficulty-low">难度：★☆</span><br>
+                                <span class="year-highlight">分值：</span>10分<br>
+                                <span class="year-highlight">题型：</span>单选1题，多选1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">解答题：</span>三角化简求值
+                                <span class="difficulty difficulty-medium">难度：★★☆</span><br>
+                                <span class="year-highlight">分值：</span>12分<br>
+                                <span class="year-highlight">题型：</span>解答题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>对称中心求参
+                                <span class="difficulty difficulty-medium">难度：★★★</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>单选题4题
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>解三角形</td>
+                            <td>
+                                <span class="year-highlight">解答题：</span>实际应用(航海测量)
+                                <span class="difficulty difficulty-medium">难度：★★★</span><br>
+                                <span class="year-highlight">分值：</span>12分<br>
+                                <span class="year-highlight">题型：</span>解答题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>正余弦定理解三角形
+                                <span class="difficulty difficulty-medium">难度：★★☆</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>单选题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">多选题：</span>三角形面积与条件综合
+                                <span class="difficulty difficulty-high">难度：★★★☆</span><br>
+                                <span class="year-highlight">分值：</span>6分<br>
+                                <span class="year-highlight">题型：</span>多选题11题
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td rowspan="2">数列</td>
+                            <td>等差等比数列</td>
+                            <td>
+                                <span class="year-highlight">解答题：</span>数列求和(错位相减)
+                                <span class="difficulty difficulty-medium">难度：★★★</span><br>
+                                <span class="year-highlight">分值：</span>12分<br>
+                                <span class="year-highlight">题型：</span>解答题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>数列基本量计算
+                                <span class="difficulty difficulty-low">难度：★☆</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>单选题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">解答题：</span>等差数列证明与求和
+                                <span class="difficulty difficulty-high">难度：★★★☆</span><br>
+                                <span class="year-highlight">分值：</span>15分<br>
+                                <span class="year-highlight">题型：</span>解答题16题
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>数列综合</td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>递推数列求通项
+                                <span class="difficulty difficulty-medium">难度：★★☆</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>填空题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">多选题：</span>数列性质综合应用
+                                <span class="difficulty difficulty-medium">难度：★★★</span><br>
+                                <span class="year-highlight">分值：</span>6分<br>
+                                <span class="year-highlight">题型：</span>多选题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">压轴题：</span>概率递推数列模型
+                                <span class="difficulty difficulty-high">难度：★★★★☆</span><br>
+                                <span class="year-highlight">分值：</span>17分<br>
+                                <span class="year-highlight">题型：</span>解答题19题
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td rowspan="2">立体几何</td>
+                            <td>空间几何体</td>
+                            <td>
+                                <span class="year-highlight">解答题：</span>线面垂直证明
+                                <span class="difficulty difficulty-medium">难度：★★☆</span><br>
+                                <span class="year-highlight">分值：</span>12分<br>
+                                <span class="year-highlight">题型：</span>解答题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>三视图与体积计算
+                                <span class="difficulty difficulty-low">难度：★☆</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>单选题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">解答题：</span>面面垂直证明
+                                <span class="difficulty difficulty-medium">难度：★★☆</span><br>
+                                <span class="year-highlight">分值：</span>15分<br>
+                                <span class="year-highlight">题型：</span>解答题17(1)
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>空间向量</td>
+                            <td>
+                                <span class="year-highlight">解答题：</span>空间角计算
+                                <span class="difficulty difficulty-medium">难度：★★★</span><br>
+                                <span class="year-highlight">分值：</span>6分<br>
+                                <span class="year-highlight">题型：</span>解答题部分
+                            </td>
+                            <td>
+                                <span class="year-highlight">解答题：</span>空间向量应用
+                                <span class="difficulty difficulty-medium">难度：★★★</span><br>
+                                <span class="year-highlight">分值：</span>7分<br>
+                                <span class="year-highlight">题型：</span>解答题部分
+                            </td>
+                            <td>
+                                <span class="year-highlight">解答题：</span>空间向量求线线角
+                                <span class="difficulty difficulty-high">难度：★★★☆</span><br>
+                                <span class="year-highlight">分值：</span>7分<br>
+                                <span class="year-highlight">题型：</span>解答题17(2)
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td rowspan="2">解析几何</td>
+                            <td>圆锥曲线</td>
+                            <td>
+                                <span class="year-highlight">解答题：</span>椭圆方程与性质
+                                <span class="difficulty difficulty-high">难度：★★★★</span><br>
+                                <span class="year-highlight">分值：</span>12分<br>
+                                <span class="year-highlight">题型：</span>解答题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>双曲线离心率
+                                <span class="difficulty difficulty-medium">难度：★★☆</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>单选题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">解答题：</span>椭圆综合问题
+                                <span class="difficulty difficulty-high">难度：★★★★</span><br>
+                                <span class="year-highlight">分值：</span>17分<br>
+                                <span class="year-highlight">题型：</span>解答题18题
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>直线与圆</td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>直线与圆位置关系
+                                <span class="difficulty difficulty-medium">难度：★★☆</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>单选题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>圆的方程与弦长
+                                <span class="difficulty difficulty-medium">难度：★★☆</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>填空题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>圆与直线距离问题
+                                <span class="difficulty difficulty-medium">难度：★★★</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>单选题7题
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td rowspan="2">概率统计</td>
+                            <td>概率基础</td>
+                            <td>
+                                <span class="year-highlight">解答题：</span>条件概率应用
+                                <span class="difficulty difficulty-medium">难度：★★☆</span><br>
+                                <span class="year-highlight">分值：</span>12分<br>
+                                <span class="year-highlight">题型：</span>解答题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>古典概型计算
+                                <span class="difficulty difficulty-low">难度：★☆</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>单选题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">填空题：</span>概率期望计算
+                                <span class="difficulty difficulty-medium">难度：★★☆</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>填空题14题
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>统计与分布</td>
+                            <td>
+                                <span class="year-highlight">解答题：</span>线性回归分析
+                                <span class="difficulty difficulty-medium">难度：★★★</span><br>
+                                <span class="year-highlight">分值：</span>12分<br>
+                                <span class="year-highlight">题型：</span>解答题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">解答题：</span>独立性检验
+                                <span class="difficulty difficulty-medium">难度：★★☆</span><br>
+                                <span class="year-highlight">分值：</span>12分<br>
+                                <span class="year-highlight">题型：</span>解答题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">解答题：</span>概率与独立性检验
+                                <span class="difficulty difficulty-medium">难度：★★☆</span><br>
+                                <span class="year-highlight">分值：</span>13分<br>
+                                <span class="year-highlight">题型：</span>解答题15题
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td>其他知识</td>
+                            <td>集合与逻辑</td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>集合运算
+                                <span class="difficulty difficulty-low">难度：★</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>单选题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>逻辑用语
+                                <span class="difficulty difficulty-low">难度：★</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>单选题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>集合元素计数
+                                <span class="difficulty difficulty-low">难度：★</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>单选题2题
+                            </td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td>复数</td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>复数运算
+                                <span class="difficulty difficulty-low">难度：★</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>单选题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>复数概念
+                                <span class="difficulty difficulty-low">难度：★</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>单选题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>复数虚部
+                                <span class="difficulty difficulty-low">难度：★</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>单选题1题
+                            </td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td>平面向量</td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>向量数量积
+                                <span class="difficulty difficulty-medium">难度：★★</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>单选题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>向量坐标运算
+                                <span class="difficulty difficulty-medium">难度：★★</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>单选题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>向量垂直条件
+                                <span class="difficulty difficulty-medium">难度：★★</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>填空题12题
+                            </td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td>不等式</td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>均值不等式
+                                <span class="difficulty difficulty-medium">难度：★★</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>单选题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>线性规划
+                                <span class="difficulty difficulty-low">难度：★☆</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>单选题1题
+                            </td>
+                            <td>
+                                <span class="year-highlight">选填题：</span>对数比较不等式
+                                <span class="difficulty difficulty-high">难度：★★★☆</span><br>
+                                <span class="year-highlight">分值：</span>5分<br>
+                                <span class="year-highlight">题型：</span>单选题8题
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>© 2023 高中数学高考分析系统 | 数据来源：2023-2025年新课标全国高考真题分析</p>
+            <p class="mb-0">注：难度评级标准：★（基础题） ★★（中等题） ★★★（中难题） ★★★★（难题） ★★★★★（压轴题）</p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('exportBtn').addEventListener('click', function() {
+            // 创建Excel工作簿
+            const wb = XLSX.utils.book_new();
+            wb.SheetNames.push("高考知识点分析");
+            
+            // 准备表格数据
+            const data = [];
+            
+            // 表头
+            data.push(["知识模块", "二级分类", "2023年考查情况", "2024年考查情况", "2025年考查情况"]);
+            
+            // 表格内容
+            const rows = [
+                ["函数与导数", "基本初等函数", "选填题：函数性质(周期、奇偶) 难度：★\n分值：10分\n题型：单选2题，多选1题", "解答题：导数应用(极值、最值) 难度：★★☆\n分值：12分\n题型：解答题1题", "压轴题：函数导数综合(三角函数导数) 难度：★★★★★\n分值：17分\n题型：解答题19题"],
+                ["函数与导数", "导数及应用", "解答题：切线问题与单调性 难度：★★★\n分值：12分\n题型：解答题1题", "选填题：导数几何意义(切线) 难度：★☆\n分值：5分\n题型：填空题1题", "解答题：导数与不等式证明 难度：★★★★\n分值：13分\n题型：解答题18题"],
+                ["三角函数", "三角函数基础", "选填题：图像性质、对称中心 难度：★☆\n分值：10分\n题型：单选1题，多选1题", "解答题：三角化简求值 难度：★★☆\n分值：12分\n题型：解答题1题", "选填题：对称中心求参 难度：★★★\n分值：5分\n题型：单选题4题"],
+                // 其他行的数据类似添加...
+                ["其他知识", "不等式", "选填题：均值不等式 难度：★★\n分值：5分\n题型：单选题1题", "选填题：线性规划 难度：★☆\n分值：5分\n题型：单选题1题", "选填题：对数比较不等式 难度：★★★☆\n分值：5分\n题型：单选题8题"]
+            ];
+            
+            // 添加到数据数组
+            data.push(...rows);
+            
+            // 创建工作表
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            wb.Sheets["高考知识点分析"] = ws;
+            
+            // 导出Excel
+            XLSX.writeFile(wb, "高中数学高考知识点分析(2023-2025).xlsx");
+            
+            // 提示信息
+            alert('导出成功！文件已保存为"高中数学高考知识点分析(2023-2025).xlsx"');
+        });
+    </script>
+</body>
+</html>

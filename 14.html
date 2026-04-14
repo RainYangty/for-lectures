@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抛硬币概率实验</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            padding: 30px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #ff8a00, #e52e71);
+            -webkit-background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #ddd;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+        
+        .control-panel {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(30, 30, 46, 0.8);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+        
+        .input-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            color: #ffcc00;
+        }
+        
+        input {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1.2rem;
+            text-align: center;
+            outline: none;
+            transition: all 0.3s;
+        }
+        
+        input:focus {
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.3);
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            flex: 1;
+            min-width: 120px;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        #resetBtn {
+            background: linear-gradient(90deg, #e74c3c, #f39c12);
+        }
+        
+        .results {
+            margin-top: 25px;
+        }
+        
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #3498db;
+            text-align: center;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .stat-box {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .stat-box:hover {
+            transform: scale(1.05);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: bold;
+            margin: 10px 0;
+            color: #2ecc71;
+        }
+        
+        .visualization {
+            flex: 2;
+            min-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        
+        .coin-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            height: 200px;
+            perspective: 1000px;
+        }
+        
+        .coin {
+            width: 120px;
+            height: 120px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .coin.flipping {
+            animation: flip 1.5s ease-in-out;
+        }
+        
+        @keyframes flip {
+            0% { transform: rotateY(0); }
+            50% { transform: rotateY(1800deg); }
+            100% { transform: rotateY(3600deg); }
+        }
+        
+        .coin-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            backface-visibility: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+        
+        .heads {
+            background: linear-gradient(145deg, #ffd700, #ffcc00);
+            color: #996600;
+            transform: rotateY(0deg);
+            z-index: 100;
+        }
+        
+        .tails {
+            background: linear-gradient(145deg, #c0c0c0, #a0a0a0);
+            color: #555;
+            transform: rotateY(180deg);
+        }
+        
+        .chart-container {
+            background: rgba(30, 30, 46, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            height: 300px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+        
+        .experiment-info {
+            background: rgba(30, 30, 46, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        
+        .info-title {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            color: #ffcc00;
+            text-align: center;
+        }
+        
+        .info-content {
+            line-height: 1.6;
+            color: #ddd;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        th {
+            background: rgba(255, 204, 0, 0.2);
+            color: #ffcc00;
+        }
+        
+        tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .probability {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+            
+            .visualization {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>抛硬币概率实验模拟器</h1>
+            <p class="subtitle">本实验演示随机事件的大数定律 - 随着试验次数增加，正面出现的频率会趋近于理论概率值0.5。通过改变抛硬币次数，观察结果如何变化。</p>
+        </header>
+        
+        <div class="content">
+            <div class="control-panel">
+                <div class="input-group">
+                    <label for="flipCount">抛硬币次数 (1-10000)：</label>
+                    <input type="number" id="flipCount" min="1" max="10000" value="100">
+                </div>
+                
+                <div class="buttons">
+                    <button id="flipBtn">开始抛硬币</button>
+                    <button id="resetBtn">重置实验</button>
+                </div>
+                
+                <div class="results">
+                    <h2>实验结果统计</h2>
+                    <div class="stats">
+                        <div class="stat-box">
+                            <div>总次数</div>
+                            <div class="stat-value" id="totalFlips">0</div>
+                        </div>
+                        <div class="stat-box">
+                            <div>正面次数</div>
+                            <div class="stat-value" id="headsCount">0</div>
+                        </div>
+                        <div class="stat-box">
+                            <div>反面次数</div>
+                            <div class="stat-value" id="tailsCount">0</div>
+                        </div>
+                        <div class="stat-box">
+                            <div>正面比例</div>
+                            <div class="stat-value" id="headsRatio">0%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="visualization">
+                <div class="coin-container">
+                    <div class="coin" id="coin">
+                        <div class="coin-face heads">正面</div>
+                        <div class="coin-face tails">反面</div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="probabilityChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="experiment-info">
+            <h3 class="info-title">实验数据和理论分析</h3>
+            <div class="info-content">
+                <p>理论概率：在理想条件下，抛硬币出现正面的理论概率为 <span class="probability">0.5 (50%)</span>。</p>
+                <p>大数定律：当试验次数足够多时，实验结果（正面比例）将趋近于理论概率值。</p>
+                
+                <table id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>实验次数</th>
+                            <th>正面次数</th>
+                            <th>反面次数</th>
+                            <th>正面比例</th>
+                            <th>偏差</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody">
+                        <!-- 历史数据将通过JS动态添加 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <footer>
+            <p>高中数学概率实验教学工具 | 抛硬币模拟器 | 理解大数定律</p>
+        </footer>
+    </div>
+    
+    <script>
+        // DOM元素引用
+        const flipBtn = document.getElementById('flipBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const flipCountInput = document.getElementById('flipCount');
+        const coin = document.getElementById('coin');
+        const totalFlipsEl = document.getElementById('totalFlips');
+        const headsCountEl = document.getElementById('headsCount');
+        const tailsCountEl = document.getElementById('tailsCount');
+        const headsRatioEl = document.getElementById('headsRatio');
+        const historyBody = document.getElementById('historyBody');
+        
+        // 实验数据
+        let totalFlips = 0;
+        let headsCount = 0;
+        let tailsCount = 0;
+        let history = [];
+        
+        // 图表初始化
+        const ctx = document.getElementById('probabilityChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['正面', '反面'],
+                datasets: [{
+                    label: '出现次数',
+                    data: [0, 0],
+                    backgroundColor: [
+                        'rgba(255, 206, 86, 0.8)',
+                        'rgba(153, 102, 255, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(153, 102, 255, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#ddd'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#ddd'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#ddd'
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: '硬币正反面分布',
+                        color: '#ddd',
+                        font: {
+                            size: 18
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 抛硬币函数
+        function flipCoin() {
+            return Math.random() < 0.5 ? 'heads' : 'tails';
+        }
+        
+        // 执行多次抛硬币实验
+        function flipCoinsMultiple() {
+            const flipCount = parseInt(flipCountInput.value) || 100;
+            
+            // 验证输入
+            if (flipCount < 1 || flipCount > 10000) {
+                alert('请输入1-10000之间的数字');
+                return;
+            }
+            
+            // 动画演示（只显示前10次动画）
+            const animationCount = Math.min(flipCount, 10);
+            let animationCounter = 0;
+            
+            function animateFlip() {
+                if (animationCounter < animationCount) {
+                    animationCounter++;
+                    
+                    // 添加翻转动画
+                    coin.classList.add('flipping');
+                    
+                    // 动画结束后移除类名并更新结果
+                    setTimeout(() => {
+                        coin.classList.remove('flipping');
+                        
+                        // 随机决定硬币结果
+                        const result = flipCoin();
+                        
+                        // 更新统计数据
+                        updateStats(result);
+                        
+                        // 继续动画
+                        setTimeout(animateFlip, 300);
+                    }, 1500);
+                } else {
+                    // 剩余抛硬币（不演示动画）
+                    for (let i = animationCount; i < flipCount; i++) {
+                        const result = flipCoin();
+                        updateStats(result, false);
+                    }
+                    
+                    // 更新图表
+                    updateChart();
+                    
+                    // 添加历史记录
+                    addHistory(flipCount);
+                }
+            }
+            
+            animateFlip();
+        }
+        
+        // 更新统计结果
+        function updateStats(result, animate = true) {
+            totalFlips++;
+            
+            if (result === 'heads') {
+                headsCount++;
+            } else {
+                tailsCount++;
+            }
+            
+            // 更新显示
+            totalFlipsEl.textContent = totalFlips;
+            headsCountEl.textContent = headsCount;
+            tailsCountEl.textContent = tailsCount;
+            
+            const ratio = (headsCount / totalFlips) * 100;
+            headsRatioEl.textContent = ratio.toFixed(2) + '%';
+        }
+        
+        // 更新图表
+        function updateChart() {
+            chart.data.datasets[0].data = [headsCount, tailsCount];
+            chart.update();
+        }
+        
+        // 添加历史记录
+        function addHistory(flipCount) {
+            const ratio = (headsCount / flipCount) * 100;
+            const deviation = Math.abs(50 - ratio).toFixed(2);
+            
+            history.push({
+                flipCount,
+                headsCount,
+                tailsCount,
+                ratio,
+                deviation
+            });
+            
+            // 只保留最近5次实验
+            if (history.length > 5) {
+                history.shift();
+            }
+            
+            // 更新表格
+            updateHistoryTable();
+        }
+        
+        // 更新历史记录表格
+        function updateHistoryTable() {
+            historyBody.innerHTML = '';
+            
+            history.forEach(exp => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${exp.flipCount}</td>
+                    <td>${exp.headsCount}</td>
+                    <td>${exp.tailsCount}</td>
+                    <td>${exp.ratio.toFixed(2)}%</td>
+                    <td>${exp.deviation}%</td>
+                `;
+                historyBody.appendChild(row);
+            });
+        }
+        
+        // 重置实验
+        function resetExperiment() {
+            totalFlips = 0;
+            headsCount = 0;
+            tailsCount = 0;
+            history = [];
+            
+            // 重置显示
+            totalFlipsEl.textContent = '0';
+            headsCountEl.textContent = '0';
+            tailsCountEl.textContent = '0';
+            headsRatioEl.textContent = '0%';
+            
+            // 重置图表
+            chart.data.datasets[0].data = [0, 0];
+            chart.update();
+            
+            // 清空历史表格
+            historyBody.innerHTML = '';
+        }
+        
+        // 事件监听
+        flipBtn.addEventListener('click', flipCoinsMultiple);
+        resetBtn.addEventListener('click', resetExperiment);
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始显示
+            updateChart();
+        });
+    </script>
+</body>
+</html>
