@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>完整化学元素周期表</title>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --text-main: #1e293b;
+            --text-dim: #64748b;
+            --border-color: #cbd5e1;
+            
+            /* 分类配色 */
+            --nonmetal: #dcfce7;
+            --alkali: #fee2e2;
+            --alkaline: #ffedd5;
+            --transition: #f1f5f9;
+            --post-transition: #e0f2fe;
+            --metalloid: #fef9c3;
+            --noble: #f5f3ff;
+            --halogen: #dcfce7;
+            --lanthanide: #fae8ff;
+            --actinide: #fce7f3;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 20px;
+            color: #334155;
+            letter-spacing: 12px;
+            font-weight: bold;
+        }
+
+        .container {
+            padding: 25px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+            max-width: 95vw;
+        }
+
+        .periodic-table {
+            display: grid;
+            grid-template-columns: 45px repeat(18, 60px);
+            gap: 3px;
+        }
+
+        .cell {
+            aspect-ratio: 1 / 1.15;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            transition: all 0.2s ease;
+            cursor: default;
+        }
+
+        .cell:not(.label):hover {
+            transform: scale(1.2);
+            z-index: 50;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+            border-color: #94a3b8;
+        }
+
+        .label {
+            border: none;
+            color: var(--text-dim);
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .period-label { font-size: 0.9rem; }
+        .group-label { font-size: 0.75rem; padding-bottom: 8px; }
+
+        .number { position: absolute; top: 2px; left: 4px; font-size: 0.65rem; color: #475569; }
+        .symbol { font-size: 1.2rem; font-weight: bold; margin-top: 2px; }
+        .name { font-size: 0.8rem; font-weight: 500; margin-top: -2px; }
+        .weight { font-size: 0.55rem; color: #64748b; margin-top: 2px; transform: scale(0.9); }
+
+        /* 分类背景类 */
+        .nonmetal { background-color: var(--nonmetal); }
+        .alkali { background-color: var(--alkali); }
+        .alkaline { background-color: var(--alkaline); }
+        .transition { background-color: var(--transition); }
+        .post-transition { background-color: var(--post-transition); }
+        .metalloid { background-color: var(--metalloid); }
+        .noble { background-color: var(--noble); }
+        .lanthanide { background-color: var(--lanthanide); }
+        .actinide { background-color: var(--actinide); }
+
+        .extra-section {
+            margin-top: 45px;
+            display: grid;
+            grid-template-columns: 110px repeat(15, 60px);
+            gap: 3px;
+            margin-left: 45px; /* 对齐主表 */
+        }
+
+        .extra-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: bold;
+            border: 1px solid var(--border-color);
+            background: #f1f5f9;
+        }
+
+        .legend {
+            margin-top: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            font-size: 0.8rem;
+        }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .dot { width: 12px; height: 12px; border: 1px solid #cbd5e1; }
+    </style>
+</head>
+<body>
+
+    <h1>元 素 周 期 表</h1>
+
+    <div class="container">
+        <div class="periodic-table" id="main-table"></div>
+        <div class="extra-section" id="bottom-table"></div>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><div class="dot" style="background:var(--nonmetal)"></div>非金属</div>
+        <div class="legend-item"><div class="dot" style="background:var(--noble)"></div>稀有气体</div>
+        <div class="legend-item"><div class="dot" style="background:var(--alkali)"></div>碱金属</div>
+        <div class="legend-item"><div class="dot" style="background:var(--alkaline)"></div>碱土金属</div>
+        <div class="legend-item"><div class="dot" style="background:var(--metalloid)"></div>类金属</div>
+        <div class="legend-item"><div class="dot" style="background:var(--transition)"></div>过渡金属</div>
+        <div class="legend-item"><div class="dot" style="background:var(--post-transition)"></div>后过渡金属</div>
+        <div class="legend-item"><div class="dot" style="background:var(--lanthanide)"></div>镧系</div>
+        <div class="legend-item"><div class="dot" style="background:var(--actinide)"></div>锕系</div>
+    </div>
+
+    <script>
+        const groups = ["", "IA", "IIA", "IIIB", "IVB", "VB", "VIB", "VIIB", "VIII", "VIII", "VIII", "IB", "IIB", "IIIA", "IVA", "VA", "VIA", "VIIA", "0"];
+        
+        // 完整 118 元素数据
+        const elements = [
+            {n:1, s:"H", cn:"氢", w:"1.008", r:1, c:1, cat:"nonmetal"},
+            {n:2, s:"He", cn:"氦", w:"4.003", r:1, c:18, cat:"noble"},
+            {n:3, s:"Li", cn:"锂", w:"6.941", r:2, c:1, cat:"alkali"},
+            {n:4, s:"Be", cn:"铍", w:"9.012", r:2, c:2, cat:"alkaline"},
+            {n:5, s:"B", cn:"硼", w:"10.81", r:2, c:13, cat:"metalloid"},
+            {n:6, s:"C", cn:"碳", w:"12.01", r:2, c:14, cat:"nonmetal"},
+            {n:7, s:"N", cn:"氮", w:"14.01", r:2, c:15, cat:"nonmetal"},
+            {n:8, s:"O", cn:"氧", w:"16.00", r:2, c:16, cat:"nonmetal"},
+            {n:9, s:"F", cn:"氟", w:"19.00", r:2, c:17, cat:"nonmetal"},
+            {n:10, s:"Ne", cn:"氖", w:"20.18", r:2, c:18, cat:"noble"},
+            {n:11, s:"Na", cn:"钠", w:"22.99", r:3, c:1, cat:"alkali"},
+            {n:12, s:"Mg", cn:"镁", w:"24.31", r:3, c:2, cat:"alkaline"},
+            {n:13, s:"Al", cn:"铝", w:"26.98", r:3, c:13, cat:"post-transition"},
+            {n:14, s:"Si", cn:"硅", w:"28.09", r:3, c:14, cat:"metalloid"},
+            {n:15, s:"P", cn:"磷", w:"30.97", r:3, c:15, cat:"nonmetal"},
+            {n:16, s:"S", cn:"硫", w:"32.06", r:3, c:16, cat:"nonmetal"},
+            {n:17, s:"Cl", cn:"氯", w:"35.45", r:3, c:17, cat:"nonmetal"},
+            {n:18, s:"Ar", cn:"氩", w:"39.95", r:3, c:18, cat:"noble"},
+            {n:19, s:"K", cn:"钾", w:"39.10", r:4, c:1, cat:"alkali"},
+            {n:20, s:"Ca", cn:"钙", w:"40.08", r:4, c:2, cat:"alkaline"},
+            {n:21, s:"Sc", cn:"钪", w:"44.96", r:4, c:3, cat:"transition"},
+            {n:22, s:"Ti", cn:"钛", w:"47.87", r:4, c:4, cat:"transition"},
+            {n:23, s:"V", cn:"钒", w:"50.94", r:4, c:5, cat:"transition"},
+            {n:24, s:"Cr", cn:"铬", w:"52.00", r:4, c:6, cat:"transition"},
+            {n:25, s:"Mn", cn:"锰", w:"54.94", r:4, c:7, cat:"transition"},
+            {n:26, s:"Fe", cn:"铁", w:"55.85", r:4, c:8, cat:"transition"},
+            {n:27, s:"Co", cn:"钴", w:"58.93", r:4, c:9, cat:"transition"},
+            {n:28, s:"Ni", cn:"镍", w:"58.69", r:4, c:10, cat:"transition"},
+            {n:29, s:"Cu", cn:"铜", w:"63.55", r:4, c:11, cat:"transition"},
+            {n:30, s:"Zn", cn:"锌", w:"65.38", r:4, c:12, cat:"transition"},
+            {n:31, s:"Ga", cn:"镓", w:"69.72", r:4, c:13, cat:"post-transition"},
+            {n:32, s:"Ge", cn:"锗", w:"72.63", r:4, c:14, cat:"metalloid"},
+            {n:33, s:"As", cn:"砷", w:"74.92", r:4, c:15, cat:"metalloid"},
+            {n:34, s:"Se", cn:"硒", w:"78.96", r:4, c:16, cat:"nonmetal"},
+            {n:35, s:"Br", cn:"溴", w:"79.90", r:4, c:17, cat:"nonmetal"},
+            {n:36, s:"Kr", cn:"氪", w:"83.80", r:4, c:18, cat:"noble"},
+            {n:37, s:"Rb", cn:"铷", w:"85.47", r:5, c:1, cat:"alkali"},
+            {n:38, s:"Sr", cn:"锶", w:"87.62", r:5, c:2, cat:"alkaline"},
+            {n:39, s:"Y", cn:"钇", w:"88.91", r:5, c:3, cat:"transition"},
+            {n:40, s:"Zr", cn:"锆", w:"91.22", r:5, c:4, cat:"transition"},
+            {n:41, s:"Nb", cn:"铌", w:"92.91", r:5, c:5, cat:"transition"},
+            {n:42, s:"Mo", cn:"钼", w:"95.96", r:5, c:6, cat:"transition"},
+            {n:43, s:"Tc", cn:"锝", w:"(98)", r:5, c:7, cat:"transition"},
+            {n:44, s:"Ru", cn:"钌", w:"101.1", r:5, c:8, cat:"transition"},
+            {n:45, s:"Rh", cn:"铑", w:"102.9", r:5, c:9, cat:"transition"},
+            {n:46, s:"Pd", cn:"钯", w:"106.4", r:5, c:10, cat:"transition"},
+            {n:47, s:"Ag", cn:"银", w:"107.9", r:5, c:11, cat:"transition"},
+            {n:48, s:"Cd", cn:"镉", w:"112.4", r:5, c:12, cat:"transition"},
+            {n:49, s:"In", cn:"铟", w:"114.8", r:5, c:13, cat:"post-transition"},
+            {n:50, s:"Sn", cn:"锡", w:"118.7", r:5, c:14, cat:"post-transition"},
+            {n:51, s:"Sb", cn:"锑", w:"121.8", r:5, c:15, cat:"metalloid"},
+            {n:52, s:"Te", cn:"碲", w:"127.6", r:5, c:16, cat:"metalloid"},
+            {n:53, s:"I", cn:"碘", w:"126.9", r:5, c:17, cat:"nonmetal"},
+            {n:54, s:"Xe", cn:"氙", w:"131.3", r:5, c:18, cat:"noble"},
+            {n:55, s:"Cs", cn:"铯", w:"132.9", r:6, c:1, cat:"alkali"},
+            {n:56, s:"Ba", cn:"钡", w:"137.3", r:6, c:2, cat:"alkaline"},
+            {n:"57-71", s:"La-Lu", cn:"镧系", w:"", r:6, c:3, cat:"lanthanide"},
+            {n:72, s:"Hf", cn:"铪", w:"178.5", r:6, c:4, cat:"transition"},
+            {n:73, s:"Ta", cn:"钽", w:"180.9", r:6, c:5, cat:"transition"},
+            {n:74, s:"W", cn:"钨", w:"183.8", r:6, c:6, cat:"transition"},
+            {n:75, s:"Re", cn:"铼", w:"186.2", r:6, c:7, cat:"transition"},
+            {n:76, s:"Os", cn:"锇", w:"190.2", r:6, c:8, cat:"transition"},
+            {n:77, s:"Ir", cn:"铱", w:"192.2", r:6, c:9, cat:"transition"},
+            {n:78, s:"Pt", cn:"铂", w:"195.1", r:6, c:10, cat:"transition"},
+            {n:79, s:"Au", cn:"金", w:"197.0", r:6, c:11, cat:"transition"},
+            {n:80, s:"Hg", cn:"汞", w:"200.6", r:6, c:12, cat:"transition"},
+            {n:81, s:"Tl", cn:"铊", w:"204.4", r:6, c:13, cat:"post-transition"},
+            {n:82, s:"Pb", cn:"铅", w:"207.2", r:6, c:14, cat:"post-transition"},
+            {n:83, s:"Bi", cn:"铋", w:"209.0", r:6, c:15, cat:"post-transition"},
+            {n:84, s:"Po", cn:"钋", w:"(209)", r:6, c:16, cat:"post-transition"},
+            {n:85, s:"At", cn:"砹", w:"(210)", r:6, c:17, cat:"metalloid"},
+            {n:86, s:"Rn", cn:"氡", w:"(222)", r:6, c:18, cat:"noble"},
+            {n:87, s:"Fr", cn:"钫", w:"(223)", r:7, c:1, cat:"alkali"},
+            {n:88, s:"Ra", cn:"镭", w:"(226)", r:7, c:2, cat:"alkaline"},
+            {n:"89-103", s:"Ac-Lr", cn:"锕系", w:"", r:7, c:3, cat:"actinide"},
+            {n:104, s:"Rf", cn:"𬬻", w:"(267)", r:7, c:4, cat:"transition"},
+            {n:105, s:"Db", cn:"𬭊", w:"(268)", r:7, c:5, cat:"transition"},
+            {n:106, s:"Sg", cn:"𬭳", w:"(269)", r:7, c:6, cat:"transition"},
+            {n:107, s:"Bh", cn:"𬭛", w:"(270)", r:7, c:7, cat:"transition"},
+            {n:108, s:"Hs", cn:"𬭶", w:"(269)", r:7, c:8, cat:"transition"},
+            {n:109, s:"Mt", cn:"鿏", w:"(278)", r:7, c:9, cat:"transition"},
+            {n:110, s:"Ds", cn:"𬭚", w:"(281)", r:7, c:10, cat:"transition"},
+            {n:111, s:"Rg", cn:"𬭛", w:"(282)", r:7, c:11, cat:"transition"},
+            {n:112, s:"Cn", cn:"鎶", w:"(285)", r:7, c:12, cat:"transition"},
+            {n:113, s:"Nh", cn:"鿭", w:"(286)", r:7, c:13, cat:"post-transition"},
+            {n:114, s:"Fl", cn:"𬭳", w:"(289)", r:7, c:14, cat:"post-transition"},
+            {n:115, s:"Mc", cn:"镆", w:"(290)", r:7, c:15, cat:"post-transition"},
+            {n:116, s:"Lv", cn:"𬭶", w:"(293)", r:7, c:16, cat:"post-transition"},
+            {n:117, s:"Ts", cn:"𬭩", w:"(294)", r:7, c:17, cat:"post-transition"},
+            {n:118, s:"Og", cn:"𬭬", w:"(294)", r:7, c:18, cat:"noble"}
+        ];
+
+        // 底部镧系/锕系数据
+        const extraData = [
+            {n:57, s:"La", cn:"镧", w:"138.9", cat:"lanthanide"},
+            {n:58, s:"Ce", cn:"铈", w:"140.1", cat:"lanthanide"},
+            {n:59, s:"Pr", cn:"镨", w:"140.9", cat:"lanthanide"},
+            {n:60, s:"Nd", cn:"钕", w:"144.2", cat:"lanthanide"},
+            {n:61, s:"Pm", cn:"钷", w:"(145)", cat:"lanthanide"},
+            {n:62, s:"Sm", cn:"钐", w:"150.4", cat:"lanthanide"},
+            {n:63, s:"Eu", cn:"铕", w:"152.0", cat:"lanthanide"},
+            {n:64, s:"Gd", cn:"钆", w:"157.3", cat:"lanthanide"},
+            {n:65, s:"Tb", cn:"铽", w:"158.9", cat:"lanthanide"},
+            {n:66, s:"Dy", cn:"镝", w:"162.5", cat:"lanthanide"},
+            {n:67, s:"Ho", cn:"钬", w:"164.9", cat:"lanthanide"},
+            {n:68, s:"Er", cn:"铒", w:"167.3", cat:"lanthanide"},
+            {n:69, s:"Tm", cn:"铥", w:"168.9", cat:"lanthanide"},
+            {n:70, s:"Yb", cn:"镱", w:"173.1", cat:"lanthanide"},
+            {n:71, s:"Lu", cn:"镥", w:"175.0", cat:"lanthanide"},
+            {n:89, s:"Ac", cn:"锕", w:"(227)", cat:"actinide"},
+            {n:90, s:"Th", cn:"钍", w:"232.0", cat:"actinide"},
+            {n:91, s:"Pa", cn:"镤", w:"231.0", cat:"actinide"},
+            {n:92, s:"U", cn:"铀", w:"238.0", cat:"actinide"},
+            {n:93, s:"Np", cn:"镎", w:"(237)", cat:"actinide"},
+            {n:94, s:"Pu", cn:"钚", w:"(244)", cat:"actinide"},
+            {n:95, s:"Am", cn:"镅", w:"(243)", cat:"actinide"},
+            {n:96, s:"Cm", cn:"锔", w:"(247)", cat:"actinide"},
+            {n:97, s:"Bk", cn:"锫", w:"(247)", cat:"actinide"},
+            {n:98, s:"Cf", cn:"锎", w:"(251)", cat:"actinide"},
+            {n:99, s:"Es", cn:"锿", w:"(252)", cat:"actinide"},
+            {n:100, s:"Fm", cn:"镄", w:"(257)", cat:"actinide"},
+            {n:101, s:"Md", cn:"钔", w:"(258)", cat:"actinide"},
+            {n:102, s:"No", cn:"锘", w:"(259)", cat:"actinide"},
+            {n:103, s:"Lr", cn:"铹", w:"(262)", cat:"actinide"}
+        ];
+
+        const mainTable = document.getElementById('main-table');
+
+        // 渲染主族/副族标签
+        groups.forEach(g => {
+            const div = document.createElement('div');
+            div.className = 'cell label group-label';
+            div.innerText = g;
+            mainTable.appendChild(div);
+        });
+
+        // 渲染主表 7行
+        for (let r = 1; r <= 7; r++) {
+            // 周期序号
+            const pLabel = document.createElement('div');
+            pLabel.className = 'cell label period-label';
+            pLabel.innerText = r;
+            mainTable.appendChild(pLabel);
+
+            for (let c = 1; c <= 18; c++) {
+                const el = elements.find(e => e.r === r && e.c === c);
+                const div = document.createElement('div');
+                if (el) {
+                    div.className = `cell ${el.cat}`;
+                    div.innerHTML = `
+                        <div class="number">${el.n}</div>
+                        <div class="symbol">${el.s}</div>
+                        <div class="name">${el.cn}</div>
+                        <div class="weight">${el.w}</div>
+                    `;
+                } else {
+                    div.className = 'cell label';
+                }
+                mainTable.appendChild(div);
+            }
+        }
+
+        // 渲染底部
+        const bottomTable = document.getElementById('bottom-table');
+        
+        // 渲染镧系行
+        const laLabel = document.createElement('div');
+        laLabel.className = 'extra-label';
+        laLabel.innerText = "镧系 57-71";
+        bottomTable.appendChild(laLabel);
+        extraData.slice(0, 15).forEach(el => {
+            const div = document.createElement('div');
+            div.className = `cell ${el.cat}`;
+            div.innerHTML = `<div class="number">${el.n}</div><div class="symbol">${el.s}</div><div class="name">${el.cn}</div><div class="weight">${el.w}</div>`;
+            bottomTable.appendChild(div);
+        });
+
+        // 渲染锕系行
+        const acLabel = document.createElement('div');
+        acLabel.className = 'extra-label';
+        acLabel.innerText = "锕系 89-103";
+        bottomTable.appendChild(acLabel);
+        extraData.slice(15, 30).forEach(el => {
+            const div = document.createElement('div');
+            div.className = `cell ${el.cat}`;
+            div.innerHTML = `<div class="number">${el.n}</div><div class="symbol">${el.s}</div><div class="name">${el.cn}</div><div class="weight">${el.w}</div>`;
+            bottomTable.appendChild(div);
+        });
+    </script>
+</body>
+</html>
